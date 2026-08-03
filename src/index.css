@@ -1,0 +1,534 @@
+@import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap");
+
+@import "tailwindcss";
+
+
+@theme {
+  /* Main colours */
+  --color-base: #0f1115;
+  --color-base-soft: #13161b;
+  --color-surface: #191d23;
+  --color-surface-hover: #1e232b;
+  --color-surface-light: #242a33;
+
+  /* Borders */
+  --color-border: #303640;
+  --color-border-light: #3a424e;
+
+  /* Brand colours */
+  --color-accent: #39bdf8;
+  --color-accent-hover: #70d2ff;
+  --color-accent-soft: #15384a;
+
+  /* Text */
+  --color-muted: #929cab;
+  --color-muted-light: #b6bec9;
+
+  /* Status colours */
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
+  --color-danger: #fb7185;
+
+  /* Fonts */
+  --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: "Barlow Condensed", "Inter", sans-serif;
+
+  /* Shadows */
+  --shadow-panel:
+    0 1px 2px rgb(0 0 0 / 20%),
+    0 10px 30px rgb(0 0 0 / 12%);
+
+  --shadow-accent:
+    0 0 0 1px rgb(57 189 248 / 15%),
+    0 10px 30px rgb(57 189 248 / 8%);
+
+  /* Animations */
+  --animate-fade-in: fade-in 400ms ease-out both;
+  --animate-slide-up: slide-up 450ms ease-out both;
+  --animate-pulse-soft: pulse-soft 2.5s ease-in-out infinite;
+}
+
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.75;
+  }
+}
+
+/* =========================================================
+   GLOBAL BASE STYLES
+   ========================================================= */
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    min-width: 320px;
+    scroll-behavior: smooth;
+    background: var(--color-base);
+  }
+
+  body {
+    min-width: 320px;
+    min-height: 100vh;
+    margin: 0;
+    overflow-x: hidden;
+
+    color: white;
+    background:
+      radial-gradient(
+        circle at 15% 0%,
+        rgb(57 189 248 / 5%),
+        transparent 28rem
+      ),
+      linear-gradient(
+        180deg,
+        var(--color-base-soft) 0%,
+        var(--color-base) 22rem
+      );
+
+    font-family: var(--font-sans);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
+  }
+
+  h1 {
+    letter-spacing: -0.025em;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  a,
+  button,
+  input,
+  select {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button,
+  select {
+    cursor: pointer;
+  }
+
+  button,
+  input,
+  select {
+    font: inherit;
+  }
+
+  input,
+  select {
+    color-scheme: dark;
+  }
+
+  ::selection {
+    color: white;
+    background: rgb(57 189 248 / 35%);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+  }
+}
+
+/* =========================================================
+   REUSABLE COMPONENT STYLES
+   These are optional classes you can add to future pages.
+   ========================================================= */
+
+@layer components {
+  .page-container {
+  width: 100%;
+  max-width: 1600px;
+  margin-inline: auto;
+  padding: 1.5rem 1.25rem 3rem;
+}
+
+  .page-heading {
+    font-family: var(--font-display);
+    font-size: clamp(1.9rem, 3.6vw, 2.7rem);
+    font-weight: 800;
+    line-height: 0.95;
+    letter-spacing: -0.025em;
+  }
+
+  .section-label {
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  .panel {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
+    background:
+      linear-gradient(
+        145deg,
+        rgb(255 255 255 / 1.5%),
+        transparent 40%
+      ),
+      var(--color-surface);
+    box-shadow: var(--shadow-panel);
+  }
+
+  .panel::before {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    content: "";
+    background:
+      linear-gradient(
+        115deg,
+        rgb(255 255 255 / 2%),
+        transparent 30%
+      );
+  }
+
+  .panel-hover {
+    transition:
+      transform 180ms ease,
+      border-color 180ms ease,
+      background-color 180ms ease,
+      box-shadow 180ms ease;
+  }
+
+  .panel-hover:hover {
+    transform: translateY(-2px);
+    border-color: var(--color-border-light);
+    background-color: var(--color-surface-hover);
+    box-shadow: var(--shadow-accent);
+  }
+
+  .stat-number {
+    font-family: var(--font-display);
+    font-weight: 800;
+    line-height: 1;
+    color: var(--color-accent);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .primary-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.5rem;
+    padding-inline: 1rem;
+    border: 1px solid rgb(57 189 248 / 55%);
+    border-radius: 0.65rem;
+    background: var(--color-accent-soft);
+    color: var(--color-accent-hover);
+    font-size: 0.875rem;
+    font-weight: 700;
+    transition:
+      transform 160ms ease,
+      background-color 160ms ease,
+      border-color 160ms ease;
+  }
+
+  .primary-button:hover {
+    transform: translateY(-1px);
+    border-color: var(--color-accent);
+    background: rgb(57 189 248 / 19%);
+  }
+
+  .secondary-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.5rem;
+    padding-inline: 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.65rem;
+    background: var(--color-surface);
+    color: white;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition:
+      border-color 160ms ease,
+      background-color 160ms ease;
+  }
+
+  .secondary-button:hover {
+    border-color: var(--color-border-light);
+    background: var(--color-surface-hover);
+  }
+
+  .form-control {
+    width: 100%;
+    min-height: 2.45rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.6rem;
+    background: var(--color-surface);
+    padding-inline: 0.9rem;
+    color: white;
+    transition:
+      border-color 160ms ease,
+      box-shadow 160ms ease,
+      background-color 160ms ease;
+  }
+
+  .form-control:hover {
+    border-color: var(--color-border-light);
+  }
+
+  .form-control:focus {
+    border-color: var(--color-accent);
+    background: var(--color-surface-hover);
+    outline: none;
+    box-shadow: 0 0 0 3px rgb(57 189 248 / 12%);
+  }
+
+  .form-control::placeholder {
+    color: var(--color-muted);
+  }
+
+  .table-container {
+    overflow-x: auto;
+    border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
+    background: var(--color-surface);
+    box-shadow: var(--shadow-panel);
+  }
+
+  .data-table {
+    width: 100%;
+    min-width: 720px;
+    border-collapse: collapse;
+  }
+
+  .data-table thead {
+    background: rgb(255 255 255 / 1.5%);
+  }
+
+  .data-table th {
+    padding: 0.65rem 0.9rem;
+    color: var(--color-muted);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.065em;
+    text-align: left;
+    text-transform: uppercase;
+  }
+
+  .data-table td {
+    padding: 0.7rem 0.9rem;
+    border-top: 1px solid var(--color-border);
+    font-size: 0.875rem;
+  }
+
+  .data-table tbody tr {
+    transition: background-color 140ms ease;
+  }
+
+  .data-table tbody tr:hover {
+    background: rgb(255 255 255 / 2.5%);
+  }
+}
+
+/* =========================================================
+   GLOBAL IMPROVEMENTS FOR YOUR EXISTING JSX
+   No component changes are required for these.
+   ========================================================= */
+
+@layer utilities {
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .text-gradient {
+    color: transparent;
+    background:
+      linear-gradient(
+        90deg,
+        white 0%,
+        var(--color-accent-hover) 100%
+      );
+    background-clip: text;
+    -webkit-background-clip: text;
+  }
+
+  .border-glow {
+    border-color: rgb(57 189 248 / 45%);
+    box-shadow:
+      0 0 0 1px rgb(57 189 248 / 7%),
+      0 0 25px rgb(57 189 248 / 5%);
+  }
+
+  .surface-grid {
+    background-image:
+      linear-gradient(rgb(255 255 255 / 2%) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(255 255 255 / 2%) 1px, transparent 1px);
+    background-size: 30px 30px;
+  }
+}
+
+/* Improve all current card elements using your existing classes */
+.bg-surface {
+  background:
+    linear-gradient(
+      145deg,
+      rgb(255 255 255 / 1.25%),
+      transparent 45%
+    ),
+    var(--color-surface);
+}
+
+/* Smooth interaction for existing cards and panels */
+.rounded-lg.border.bg-surface,
+.rounded-xl.border.bg-surface {
+  box-shadow: var(--shadow-panel);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.rounded-lg.border.bg-surface:hover,
+.rounded-xl.border.bg-surface:hover {
+  border-color: var(--color-border-light);
+}
+
+/* Existing tables */
+table {
+  border-collapse: collapse;
+}
+
+tbody tr {
+  transition: background-color 140ms ease;
+}
+
+/* Existing inputs and select menus */
+input,
+select {
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+input:hover,
+select:hover {
+  border-color: var(--color-border-light);
+}
+
+input:focus,
+select:focus {
+  border-color: var(--color-accent);
+  outline: none;
+  box-shadow: 0 0 0 3px rgb(57 189 248 / 11%);
+}
+
+/* Scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-light) var(--color-base);
+}
+
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--color-base);
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 2px solid var(--color-base);
+  border-radius: 999px;
+  background: var(--color-border-light);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-muted);
+}
+
+/* =========================================================
+   RESPONSIVE IMPROVEMENTS
+   ========================================================= */
+
+@media (max-width: 768px) {
+  .page-container {
+    padding: 1.5rem 1rem 3rem;
+  }
+
+  table {
+    min-width: 680px;
+  }
+
+  input[type="text"],
+  input[type="search"] {
+    max-width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
