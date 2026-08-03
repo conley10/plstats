@@ -220,7 +220,10 @@ export default function LeagueTablePage() {
     };
   }, []);
 
-  const teams = data?.teams || [];
+const teams = useMemo(
+  () => data?.teams || [],
+  [data],
+);
 
   const analyticsTeams = useMemo(() => {
     if (!teams.length) return [];

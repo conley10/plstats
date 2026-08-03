@@ -2,10 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
   ArrowUpDown,
-  BarChart3,
   Goal,
   Loader2,
-  Medal,
   Search,
   ShieldCheck,
   Sparkles,
@@ -17,7 +15,6 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
   Legend,
   ResponsiveContainer,
   Tooltip,
@@ -53,22 +50,6 @@ function getPointsPerGame(team) {
   }
 
   return Number(team.points || 0) / Number(team.played);
-}
-
-function getGoalsPerGame(team) {
-  if (!team?.played) {
-    return 0;
-  }
-
-  return Number(team.goalsFor || 0) / Number(team.played);
-}
-
-function getGoalsConcededPerGame(team) {
-  if (!team?.played) {
-    return 0;
-  }
-
-  return Number(team.goalsAgainst || 0) / Number(team.played);
 }
 
 function getWinPercentage(team) {

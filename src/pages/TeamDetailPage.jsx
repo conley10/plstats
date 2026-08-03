@@ -359,11 +359,25 @@ export default function TeamDetailPage() {
 
   const team = data?.team;
   const standing = data?.standing;
-  const squad = team?.squad || [];
-  const recentForm = data?.recentForm || [];
-  const recentResults = data?.recentResults || [];
-  const upcomingFixtures =
-    data?.upcomingFixtures || [];
+const squad = useMemo(
+  () => team?.squad || [],
+  [team],
+);
+
+const recentForm = useMemo(
+  () => data?.recentForm || [],
+  [data],
+);
+
+const recentResults = useMemo(
+  () => data?.recentResults || [],
+  [data],
+);
+
+const upcomingFixtures = useMemo(
+  () => data?.upcomingFixtures || [],
+  [data],
+);
 
   const positionOptions = useMemo(() => {
     const positions = squad

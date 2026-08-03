@@ -243,9 +243,50 @@ function FixturesPage() {
     }
   }
 
-  useEffect(() => {
-    loadFixtures();
-  }, []);
+useEffect(() => {
+  let cancelled = false;
+
+  async function loadInitialFixtures() {
+    try {
+      const response = await apiClient.get("/fixtures");
+      const payload = response.data;
+
+      const fixtureList = Array.isArray(payload)
+        ? payload
+        : payload.fixtures ||
+          payload.matches ||
+          payload.data ||
+          [];
+
+      if (!cancelled) {
+        setFixtures(fixtureList);
+      }
+    } catch (requestError) {
+      console.error(
+        "Unable to load fixtures:",
+        requestError,
+      );
+
+      if (!cancelled) {
+        setError(
+          requestError.response?.data?.error ||
+            requestError.message ||
+            "Fixtures could not be loaded.",
+        );
+      }
+    } finally {
+      if (!cancelled) {
+        setLoading(false);
+      }
+    }
+  }
+
+  loadInitialFixtures();
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
 
   const matchdays = useMemo(() => {
     const values = fixtures

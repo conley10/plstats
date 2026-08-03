@@ -700,7 +700,10 @@ export default function PlayerScoutPage() {
   );
 
   const careerTotals = history?.careerTotals || {};
-  const seasons = history?.seasons || [];
+const seasons = useMemo(
+  () => history?.seasons || [],
+  [history],
+);
   const bestSeason = useMemo(() => {
     if (!seasons.length) return null;
 

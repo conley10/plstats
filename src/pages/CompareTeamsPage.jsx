@@ -871,12 +871,17 @@ export default function CompareTeamsPage() {
   useEffect(() => {
     let cancelled = false;
 
-    if (!leftId || !rightId || leftId === rightId || !season) {
-      setHeadToHead(null);
-      setHeadToHeadError("");
-      setHeadToHeadLoading(false);
-      return undefined;
-    }
+if (!leftId || !rightId || leftId === rightId || !season) {
+  const resetTimer = window.setTimeout(() => {
+    setHeadToHead(null);
+    setHeadToHeadError("");
+    setHeadToHeadLoading(false);
+  }, 0);
+
+  return () => {
+    window.clearTimeout(resetTimer);
+  };
+}
 
     async function loadHeadToHead() {
       try {

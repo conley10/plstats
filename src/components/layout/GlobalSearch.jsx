@@ -217,10 +217,17 @@ export default function GlobalSearch({
   const [loadError, setLoadError] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
 
-  useEffect(() => {
+useEffect(() => {
+  const resetTimer = window.setTimeout(() => {
     setOpen(false);
     setQuery("");
-  }, [location.pathname, location.search]);
+    setActiveIndex(0);
+  }, 0);
+
+  return () => {
+    window.clearTimeout(resetTimer);
+  };
+}, [location.pathname, location.search]);
 
   useEffect(() => {
     function handleShortcut(event) {
@@ -455,9 +462,6 @@ export default function GlobalSearch({
     );
   }, [players, teams, query]);
 
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [query]);
 
   function selectResult(result) {
     if (!result?.path) return;
@@ -535,9 +539,10 @@ export default function GlobalSearch({
                 <input
                   ref={inputRef}
                   value={query}
-                  onChange={(event) =>
-                    setQuery(event.target.value)
-                  }
+                  onChange={(event) => {
+  setQuery(event.target.value);
+  setActiveIndex(0);
+}}
                   onKeyDown={handleKeyDown}
                   placeholder="Search players, teams and pages..."
                   className="h-16 min-w-0 flex-1 bg-transparent text-base text-white outline-none placeholder:text-muted"

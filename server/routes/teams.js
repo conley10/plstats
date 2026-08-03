@@ -249,7 +249,7 @@ function normaliseHeadToHeadMatch(match) {
   };
 }
 
-function buildHeadToHeadSummary(matches, teamOne, teamTwo) {
+function buildHeadToHeadSummary(matches, teamOne) {
   const summary = {
     played: 0,
     teamOneWins: 0,

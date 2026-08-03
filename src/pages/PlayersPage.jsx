@@ -103,33 +103,66 @@ export default function PlayersPage() {
     useState("all");
   const [sortBy, setSortBy] = useState("goals");
 
-  async function loadPlayers() {
-    try {
-      setLoading(true);
-      setError("");
+async function loadPlayers() {
+  try {
+    setLoading(true);
+    setError("");
 
+    const data = await getPlayers({
+      limit: 100,
+    });
+
+    setPlayers(data.players || []);
+  } catch (requestError) {
+    console.error(
+      "Unable to load players:",
+      requestError,
+    );
+
+    setError(
+      "Unable to load Premier League player data.",
+    );
+  } finally {
+    setLoading(false);
+  }
+}
+
+useEffect(() => {
+  let cancelled = false;
+
+  async function loadInitialPlayers() {
+    try {
       const data = await getPlayers({
         limit: 100,
       });
 
-      setPlayers(data.players || []);
+      if (!cancelled) {
+        setPlayers(data.players || []);
+      }
     } catch (requestError) {
       console.error(
         "Unable to load players:",
         requestError,
       );
 
-      setError(
-        "Unable to load Premier League player data.",
-      );
+      if (!cancelled) {
+        setError(
+          "Unable to load Premier League player data.",
+        );
+      }
     } finally {
-      setLoading(false);
+      if (!cancelled) {
+        setLoading(false);
+      }
     }
   }
 
-  useEffect(() => {
-    loadPlayers();
-  }, []);
+  loadInitialPlayers();
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
 
   const teams = useMemo(() => {
     const uniqueTeams = new Map();
