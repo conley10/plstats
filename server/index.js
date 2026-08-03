@@ -10,22 +10,15 @@ import fixturesRouter from "./routes/fixtures.js";
 
 const app = express();
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://plstats-rlmnj1rck-conley1.vercel.app",
-];
-
 app.use(
   cors({
-    origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      return callback(new Error("Not allowed by CORS"));
-    },
+    origin: [
+      "http://localhost:5173",
+      "https://plstats-65rsfvtsw-conley1.vercel.app",
+    ],
   }),
 );
+
 app.use(express.json());
 
 app.get("/api/health", (req, res) => {
