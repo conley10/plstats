@@ -10,15 +10,7 @@ import fixturesRouter from "./routes/fixtures.js";
 
 const app = express();
 
-app.use(
-  cors({
-    origin: [
-      "http://localhost:5173",
-      "https://plstats-65rsfvtsw-conley1.vercel.app",
-    ],
-  }),
-);
-
+app.use(cors());
 app.use(express.json());
 
 app.get("/api/health", (req, res) => {
