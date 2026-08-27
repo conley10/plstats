@@ -7,7 +7,7 @@
     "dev": "vite",
     "server": "nodemon server/index.js",
     "start-server": "node server/index.js",
-    "understat:import": "python python/import_understat.py --season 2025",
+    "understat:import": "python python/import_understat.py --season 2026",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"

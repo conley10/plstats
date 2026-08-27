@@ -8,7 +8,7 @@ const footballDataClient = axios.create({
   },
 });
 
-const defaultSeason = process.env.FOOTBALL_DATA_SEASON || "2025";
+const defaultSeason = process.env.FOOTBALL_DATA_SEASON || "2026";
 
 export async function getPremierLeagueStandings(
   season = defaultSeason,

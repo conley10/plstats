@@ -85,7 +85,7 @@ router.get("/", async (req, res) => {
     const season =
       req.query.season ||
       process.env.FOOTBALL_DATA_SEASON ||
-      "2025";
+      "2026";
 
     const cacheKey = `home-${season}`;
     const cachedData = getCached(cacheKey);

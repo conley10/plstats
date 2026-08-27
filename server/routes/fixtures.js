@@ -69,7 +69,7 @@ router.get("/", async (req, res) => {
     const season =
       req.query.season ||
       process.env.FOOTBALL_DATA_SEASON ||
-      "2025";
+      "2026";
 
     const status = req.query.status
       ? String(req.query.status).toUpperCase()

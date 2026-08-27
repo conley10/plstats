@@ -562,7 +562,7 @@ router.get("/:playerId", async (req, res) => {
     const season =
       req.query.season ||
       process.env.FOOTBALL_DATA_SEASON ||
-      "2025";
+      "2026";
 
     const playerId = Number(req.params.playerId);
 
