@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import { testDatabaseConnection } from "./lib/db.js";
 
 import homeRouter from "./routes/home.js";
 import playersRouter from "./routes/players.js";
@@ -17,6 +18,25 @@ app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
   });
+});
+
+app.get("/api/health/database", async (req, res) => {
+  try {
+    const database = await testDatabaseConnection();
+
+    res.json({
+      status: "ok",
+      database: "connected",
+      time: database.current_time,
+    });
+  } catch (error) {
+    console.error("Database connection failed:", error);
+
+    res.status(500).json({
+      status: "error",
+      database: "disconnected",
+    });
+  }
 });
 
 app.use("/api/understat", understatRouter);
