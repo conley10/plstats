@@ -499,7 +499,7 @@ export default function PlayerRankingsPage() {
   const [search, setSearch] = useState("");
   const [position, setPosition] = useState("All");
   const [club, setClub] = useState("All");
-  const [minimumMinutes, setMinimumMinutes] = useState(450);
+  const [minimumMinutes, setMinimumMinutes] = useState(45);
   const [sortBy, setSortBy] = useState("rating");
   const [quickFilter, setQuickFilter] = useState("all");
   const [visibleCount, setVisibleCount] = useState(25);
@@ -652,7 +652,7 @@ export default function PlayerRankingsPage() {
     setSearch("");
     setPosition("All");
     setClub("All");
-    setMinimumMinutes(450);
+    setMinimumMinutes(45);
     setSortBy("rating");
     setQuickFilter("all");
     setVisibleCount(25);

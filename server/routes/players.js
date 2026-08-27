@@ -238,6 +238,76 @@ function mergePlayers(
   });
 }
 
+function addUnderstatOnlyPlayers(
+  mergedFootballPlayers,
+  understatPlayers,
+) {
+  const matchedUnderstatIds = new Set(
+    mergedFootballPlayers
+      .map((player) => player.understatId)
+      .filter(Boolean)
+      .map(String),
+  );
+
+  const additionalPlayers = understatPlayers
+    .filter(
+      (player) =>
+        !matchedUnderstatIds.has(String(player.understatId)),
+    )
+    .map((player) => ({
+      // Negative ID keeps it separate from football-data.org IDs.
+      id: -Number(player.understatId),
+
+      understatId: player.understatId,
+
+      name: player.name,
+
+      firstName: "",
+      lastName: "",
+
+      dateOfBirth: null,
+      nationality: null,
+
+      position: player.position ?? "Unknown",
+
+      team: {
+        id: null,
+        name: player.team ?? "Unknown team",
+        shortName: player.team ?? "Unknown team",
+        crest: null,
+      },
+
+      appearances: player.appearances ?? 0,
+      goals: player.goals ?? 0,
+      assists: player.assists ?? 0,
+
+      penalties: Math.max(
+        0,
+        Number(player.goals ?? 0) -
+          Number(player.npg ?? player.goals ?? 0),
+      ),
+
+      minutes: player.minutes ?? 0,
+      shots: player.shots ?? 0,
+      keyPasses: player.keyPasses ?? 0,
+
+      xg: player.xg ?? 0,
+      xa: player.xa ?? 0,
+      npxg: player.npxg ?? 0,
+
+      xgChain: player.xgChain ?? 0,
+      xgBuildup: player.xgBuildup ?? 0,
+
+      yellowCards: player.yellowCards ?? 0,
+      redCards: player.redCards ?? 0,
+    }));
+
+  return [
+    ...mergedFootballPlayers,
+    ...additionalPlayers,
+  ];
+}
+
 router.get("/", async (req, res) => {
   try {
     const season =
@@ -269,13 +339,18 @@ router.get("/", async (req, res) => {
       readUnderstatPlayers(season),
     ]);
 
-    const footballPlayers =
-      normaliseFootballDataPlayers(scorersData);
+const footballPlayers =
+  normaliseFootballDataPlayers(scorersData);
 
-    const players = mergePlayers(
-      footballPlayers,
-      understatPlayers,
-    ).sort((a, b) => {
+const mergedFootballPlayers = mergePlayers(
+  footballPlayers,
+  understatPlayers,
+);
+
+const players = addUnderstatOnlyPlayers(
+  mergedFootballPlayers,
+  understatPlayers,
+).sort((a, b) => {
       if (b.goals !== a.goals) {
         return b.goals - a.goals;
       }
@@ -336,6 +411,10 @@ router.get("/:playerId/history", async (req, res) => {
       "2026";
 
     const playerId = Number(req.params.playerId);
+const isUnderstatOnly = playerId < 0;
+const understatId = isUnderstatOnly
+  ? Math.abs(playerId)
+  : null;
 
     if (!Number.isInteger(playerId)) {
       return res.status(400).json({
@@ -565,6 +644,10 @@ router.get("/:playerId", async (req, res) => {
       "2026";
 
     const playerId = Number(req.params.playerId);
+const isUnderstatOnly = playerId < 0;
+const understatId = isUnderstatOnly
+  ? Math.abs(playerId)
+  : null;
 
     const [scorersData, understatPlayers] =
       await Promise.all([
@@ -578,14 +661,22 @@ router.get("/:playerId", async (req, res) => {
     const footballPlayers =
       normaliseFootballDataPlayers(scorersData);
 
-    const players = mergePlayers(
-      footballPlayers,
-      understatPlayers
-    );
+    const mergedFootballPlayers = mergePlayers(
+  footballPlayers,
+  understatPlayers,
+);
 
-    const player = players.find(
-      (p) => p.id === playerId
-    );
+const players = addUnderstatOnlyPlayers(
+  mergedFootballPlayers,
+  understatPlayers,
+);
+
+const player = isUnderstatOnly
+  ? players.find(
+      (p) =>
+        String(p.understatId) === String(understatId),
+    )
+  : players.find((p) => p.id === playerId);
 
     if (!player) {
       return res.status(404).json({
