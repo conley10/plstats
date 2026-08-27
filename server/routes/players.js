@@ -243,7 +243,7 @@ router.get("/", async (req, res) => {
     const season =
       req.query.season ||
       process.env.FOOTBALL_DATA_SEASON ||
-      "2025";
+      "2026";
 
     const limit = Math.min(
       Number.parseInt(req.query.limit, 10) || 100,
@@ -333,7 +333,7 @@ router.get("/:playerId/history", async (req, res) => {
     const currentSeason =
       req.query.season ||
       process.env.FOOTBALL_DATA_SEASON ||
-      "2025";
+      "2026";
 
     const playerId = Number(req.params.playerId);
 
