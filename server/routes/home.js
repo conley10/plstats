@@ -120,21 +120,23 @@ router.get("/", async (req, res) => {
 
     const leagueTable = normaliseStandings(standingsData);
 
-    const upcomingFixtures = normaliseMatches(scheduledData)
-      .sort(
-        (a, b) =>
-          new Date(a.utcDate).getTime() -
-          new Date(b.utcDate).getTime(),
-      )
-      .slice(0, 5);
+const allFinishedMatches = normaliseMatches(resultsData)
+  .sort(
+    (a, b) =>
+      new Date(b.utcDate).getTime() -
+      new Date(a.utcDate).getTime(),
+  );
 
-    const recentResults = normaliseMatches(resultsData)
-      .sort(
-        (a, b) =>
-          new Date(b.utcDate).getTime() -
-          new Date(a.utcDate).getTime(),
-      )
-      .slice(0, 5);
+const recentResults = allFinishedMatches.slice(0, 5);
+
+const allFinishedMatches = normaliseMatches(resultsData)
+  .sort(
+    (a, b) =>
+      new Date(b.utcDate).getTime() -
+      new Date(a.utcDate).getTime(),
+  );
+
+const recentResults = allFinishedMatches.slice(0, 5);
 
     const allPlayerStats = normaliseScorers(scorersData);
 
@@ -167,17 +169,16 @@ router.get("/", async (req, res) => {
         value: player.assists,
       }));
 
-    const responseData = {
-      season,
-      leagueTable: leagueTable.slice(0, 8),
-      upcomingFixtures,
-      recentResults,
-      topScorers,
-      topAssists,
-
-      // Understat data will be added here later.
-      topPerformers: [],
-    };
+const responseData = {
+  season,
+  leagueTable: leagueTable.slice(0, 8),
+  upcomingFixtures,
+  recentResults,
+  allFinishedMatches,
+  topScorers,
+  topAssists,
+  topPerformers: [],
+};
 
     setCached(
       cacheKey,

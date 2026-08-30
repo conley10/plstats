@@ -83,59 +83,89 @@ function getPositionStyle(position, totalTeams) {
 
 function calculateSeasonSummary({
   leagueTable,
-  recentResults,
+  allFinishedMatches,
   upcomingFixtures,
   season,
 }) {
-  const completedMatchesFromTable = leagueTable.length
-    ? Math.round(
-        leagueTable.reduce(
-          (total, team) => total + Number(team.played || 0),
-          0,
-        ) / 2,
-      )
-    : 0;
+  const completedMatches = allFinishedMatches.length;
 
-  const goalsFromTable = leagueTable.reduce(
-    (total, team) =>
-      total +
-      Number(
-        team.goalsFor ??
-          team.goalsScored ??
-          team.gf ??
-          0,
-      ),
+  const totalGoals = allFinishedMatches.reduce(
+    (total, result) => {
+      const home = Number(
+        getScoreValue(result.score, "home") || 0,
+      );
+
+      const away = Number(
+        getScoreValue(result.score, "away") || 0,
+      );
+
+      return total + home + away;
+    },
     0,
   );
-
-  const goalsFromResults = recentResults.reduce((total, result) => {
-    const home = Number(getScoreValue(result.score, "home") || 0);
-    const away = Number(getScoreValue(result.score, "away") || 0);
-    return total + home + away;
-  }, 0);
-
-  const hasFullSeasonGoals = goalsFromTable > 0;
-  const totalGoals = hasFullSeasonGoals ? goalsFromTable : goalsFromResults;
-  const goalMatchCount = hasFullSeasonGoals
-    ? completedMatchesFromTable
-    : recentResults.length;
 
   const champion = leagueTable[0] || null;
 
   return {
-    seasonLabel: season?.label || season?.name || "2025/26",
+    seasonLabel:
+      season?.label ||
+      season?.name ||
+      "2026/27",
+
     champion,
-    completedMatches: completedMatchesFromTable,
+    completedMatches,
     totalGoals,
+
     averageGoals:
-      totalGoals > 0 && goalMatchCount > 0
-        ? (totalGoals / goalMatchCount).toFixed(2)
+      completedMatches > 0
+        ? (totalGoals / completedMatches).toFixed(2)
         : null,
+
     teamCount: leagueTable.length,
     upcomingCount: upcomingFixtures.length,
-    goalsArePartial: !hasFullSeasonGoals && recentResults.length > 0,
+
+    goalsArePartial: false,
   };
 }
+  const completedMatches = allFinishedMatches.length;
+
+  const totalGoals = allFinishedMatches.reduce((total, result) => {
+    const home = Number(
+      getScoreValue(result.score, "home") || 0
+    );
+
+    const away = Number(
+      getScoreValue(result.score, "away") || 0
+    );
+
+    return total + home + away;
+  }, 0);
+
+  const champion = leagueTable[0] || null;
+
+  return {
+    seasonLabel:
+      season?.label ||
+      season?.name ||
+      "2026/27",
+
+    champion,
+
+    completedMatches,
+
+    totalGoals,
+
+    averageGoals:
+      completedMatches > 0
+        ? (totalGoals / completedMatches).toFixed(2)
+        : null,
+
+    teamCount: leagueTable.length,
+    upcomingCount: upcomingFixtures.length,
+
+    goalsArePartial: false,
+  };
+
 
 function StatCard({ icon: Icon, label, value, description }) {
   return (
@@ -581,26 +611,32 @@ export default function HomePage() {
     };
   }, []);
 
-  const {
-    leagueTable = [],
-    upcomingFixtures = [],
-    recentResults = [],
-    topPerformers = [],
-    topScorers = [],
-    topAssists = [],
-    season = null,
-  } = homeData || {};
+const {
+  leagueTable = [],
+  upcomingFixtures = [],
+  recentResults = [],
+  allFinishedMatches = [],
+  topPerformers = [],
+  topScorers = [],
+  topAssists = [],
+  season = null,
+} = homeData || {};
 
-  const seasonSummary = useMemo(
-    () =>
-      calculateSeasonSummary({
-        leagueTable,
-        recentResults,
-        upcomingFixtures,
-        season,
-      }),
-    [leagueTable, recentResults, upcomingFixtures, season],
-  );
+ const seasonSummary = useMemo(
+  () =>
+    calculateSeasonSummary({
+      leagueTable,
+      allFinishedMatches,
+      upcomingFixtures,
+      season,
+    }),
+  [
+    leagueTable,
+    allFinishedMatches,
+    upcomingFixtures,
+    season,
+  ],
+);
 
   if (loading) {
     return (
