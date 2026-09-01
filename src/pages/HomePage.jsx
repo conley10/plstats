@@ -145,8 +145,8 @@ function StatCard({ icon: Icon, label, value, description }) {
   );
 }
 
-function OffSeasonHero({ summary }) {
-  const champion = summary.champion;
+function SeasonHero({ summary }) {
+  const leader = summary.champion;
 
   return (
     <section className="panel overflow-hidden">
@@ -157,20 +157,20 @@ function OffSeasonHero({ summary }) {
           </p>
 
           <h1 className="mt-5 max-w-3xl font-display text-4xl font-extrabold leading-[0.95] text-white sm:text-5xl lg:text-6xl">
-            The season is complete.
+            The season is underway.
             <span className="block text-muted-light">
-              The next one starts here.
+              Follow every match as it happens.
             </span>
           </h1>
 
           <p className="mt-5 max-w-2xl text-sm leading-7 text-muted-light sm:text-white">
-            Review the final standings, player rankings and completed matches
-            before the new Premier League season begins.
+            Track the latest standings, fixtures, results and player rankings
+            throughout the {summary.seasonLabel} Premier League season.
           </p>
 
           <div className="mt-7 flex flex-wrap gap-3">
             <Link to="/table" className="primary-button">
-              View final table
+              View league table
               <ArrowRight size={16} />
             </Link>
 
@@ -183,13 +183,13 @@ function OffSeasonHero({ summary }) {
         <div className="rounded-2xl border border-border bg-black/10 p-5 sm:p-6">
           <p className="section-label">League leaders</p>
 
-          {champion ? (
+          {leader ? (
             <div className="mt-5 flex items-center gap-4">
               <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] p-3">
-                {champion.crest ? (
+                {leader.crest ? (
                   <img
-                    src={champion.crest}
-                    alt={`${champion.team} crest`}
+                    src={leader.crest}
+                    alt={`${leader.team} crest`}
                     className="h-full w-full object-contain"
                   />
                 ) : (
@@ -199,17 +199,17 @@ function OffSeasonHero({ summary }) {
 
               <div className="min-w-0">
                 <p className="truncate font-display text-3xl font-extrabold text-white">
-                  {champion.team}
+                  {leader.team}
                 </p>
+
                 <p className="mt-1 text-sm text-muted">
-                  1st place · {champion.points ?? "—"} points
+                  1st place · {leader.points ?? "—"} points
                 </p>
               </div>
             </div>
           ) : (
             <p className="mt-5 text-sm leading-6 text-muted">
-              Final league standings will appear here when the table is
-              available.
+              League standings will appear here when table data is available.
             </p>
           )}
 
@@ -221,11 +221,12 @@ function OffSeasonHero({ summary }) {
 
               <div>
                 <p className="text-sm font-semibold text-white">
-                  Weekly performers return soon
+                  Season tracking
                 </p>
+
                 <p className="mt-1 text-xs leading-5 text-muted">
-                  This hero automatically switches back to player cards as soon
-                  as the new-season performance data is available.
+                  PLSTATS updates with current standings, results, fixtures and
+                  player statistics throughout the season.
                 </p>
               </div>
             </div>
@@ -677,31 +678,7 @@ export default function HomePage() {
 
   return (
     <main className="page-container animate-fade-in">
-      {topPerformers.length > 0 ? (
-        <section>
-          <div className="mb-4 flex items-end justify-between gap-4">
-            <div>
-              <p className="section-label mb-2">Latest ratings</p>
-              <h1 className="page-heading">Top performers this week</h1>
-            </div>
-
-            <Link
-              to="/players/rankings"
-              className="hidden text-sm font-semibold text-accent hover:text-accent-hover sm:block"
-            >
-              View rankings →
-            </Link>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {topPerformers.map((player) => (
-              <PlayerCard key={player.id} player={player} />
-            ))}
-          </div>
-        </section>
-      ) : (
-        <OffSeasonHero summary={seasonSummary} />
-      )}
+      <SeasonHero summary={seasonSummary} />
 
       <section className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {statCards.map((card) => (
