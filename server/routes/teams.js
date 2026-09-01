@@ -401,7 +401,7 @@ router.get("/", async (req, res) => {
     const season =
       req.query.season ||
       process.env.FOOTBALL_DATA_SEASON ||
-      "2025";
+      "2026";
 
     const cacheKey = `teams-${season}`;
     const cachedData = getCached(cacheKey);
@@ -483,7 +483,7 @@ router.get(
       const currentSeason = Number(
         req.query.season ||
           process.env.FOOTBALL_DATA_SEASON ||
-          "2025",
+          "2026",
       );
 
       const teamOneId = Number(req.params.teamOneId);
@@ -636,7 +636,7 @@ router.get("/:teamId", async (req, res) => {
     const season =
       req.query.season ||
       process.env.FOOTBALL_DATA_SEASON ||
-      "2025";
+      "2026";
 
     const teamId = Number(req.params.teamId);
 

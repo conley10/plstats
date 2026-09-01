@@ -146,7 +146,7 @@ router.get("/:fixtureId", async (req, res) => {
     const season =
       req.query.season ||
       process.env.FOOTBALL_DATA_SEASON ||
-      "2025";
+      "2026";
 
     const fixtureId = Number(req.params.fixtureId);
 
