@@ -76,7 +76,6 @@ def load_players(season):
 
     return [normalise_player(player) for player in players]
 
-
 def write_output(season, players):
     OUTPUT_DIRECTORY.mkdir(parents=True, exist_ok=True)
 
@@ -84,6 +83,31 @@ def write_output(season, players):
         OUTPUT_DIRECTORY
         / f"understat-players-{season}.json"
     )
+
+    # Check whether the existing player data has actually changed.
+    if output_path.exists():
+        try:
+            existing_payload = json.loads(
+                output_path.read_text(encoding="utf-8")
+            )
+
+            existing_players = existing_payload.get(
+                "players",
+                [],
+            )
+
+            if existing_players == players:
+                print(
+                    f"No player-data changes detected for "
+                    f"{season}/{season + 1}."
+                )
+
+                return output_path
+
+        except (json.JSONDecodeError, OSError):
+            # If the existing file cannot be read,
+            # simply overwrite it with fresh data.
+            pass
 
     payload = {
         "season": str(season),
