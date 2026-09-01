@@ -89,53 +89,13 @@ function calculateSeasonSummary({
 }) {
   const completedMatches = allFinishedMatches.length;
 
-  const totalGoals = allFinishedMatches.reduce(
-    (total, result) => {
-      const home = Number(
-        getScoreValue(result.score, "home") || 0,
-      );
-
-      const away = Number(
-        getScoreValue(result.score, "away") || 0,
-      );
-
-      return total + home + away;
-    },
-    0,
-  );
-
-  const champion = leagueTable[0] || null;
-
-  return {
-    seasonLabel:
-      season?.label ||
-      season?.name ||
-      "2026/27",
-
-    champion,
-    completedMatches,
-    totalGoals,
-
-    averageGoals:
-      completedMatches > 0
-        ? (totalGoals / completedMatches).toFixed(2)
-        : null,
-
-    teamCount: leagueTable.length,
-    upcomingCount: upcomingFixtures.length,
-
-    goalsArePartial: false,
-  };
-}
-  const completedMatches = allFinishedMatches.length;
-
   const totalGoals = allFinishedMatches.reduce((total, result) => {
     const home = Number(
-      getScoreValue(result.score, "home") || 0
+      getScoreValue(result.score, "home") || 0,
     );
 
     const away = Number(
-      getScoreValue(result.score, "away") || 0
+      getScoreValue(result.score, "away") || 0,
     );
 
     return total + home + away;
@@ -150,9 +110,7 @@ function calculateSeasonSummary({
       "2026/27",
 
     champion,
-
     completedMatches,
-
     totalGoals,
 
     averageGoals:
@@ -162,10 +120,9 @@ function calculateSeasonSummary({
 
     teamCount: leagueTable.length,
     upcomingCount: upcomingFixtures.length,
-
     goalsArePartial: false,
   };
-
+}
 
 function StatCard({ icon: Icon, label, value, description }) {
   return (
@@ -611,32 +568,27 @@ export default function HomePage() {
     };
   }, []);
 
-const {
-  leagueTable = [],
-  upcomingFixtures = [],
-  recentResults = [],
-  allFinishedMatches = [],
-  topPerformers = [],
-  topScorers = [],
-  topAssists = [],
-  season = null,
-} = homeData || {};
+  const {
+    leagueTable = [],
+    upcomingFixtures = [],
+    recentResults = [],
+    allFinishedMatches = [],
+    topPerformers = [],
+    topScorers = [],
+    topAssists = [],
+    season = null,
+  } = homeData || {};
 
- const seasonSummary = useMemo(
-  () =>
-    calculateSeasonSummary({
-      leagueTable,
-      allFinishedMatches,
-      upcomingFixtures,
-      season,
-    }),
-  [
-    leagueTable,
-    allFinishedMatches,
-    upcomingFixtures,
-    season,
-  ],
-);
+  const seasonSummary = useMemo(
+    () =>
+      calculateSeasonSummary({
+        leagueTable,
+        allFinishedMatches,
+        upcomingFixtures,
+        season,
+      }),
+    [leagueTable, allFinishedMatches, upcomingFixtures, season],
+  );
 
   if (loading) {
     return (
