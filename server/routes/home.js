@@ -118,16 +118,15 @@ router.get("/", async (req, res) => {
       }),
     ]);
 
-    const leagueTable = normaliseStandings(standingsData);
+const leagueTable = normaliseStandings(standingsData);
 
-const allFinishedMatches = normaliseMatches(resultsData)
+const upcomingFixtures = normaliseMatches(scheduledData)
   .sort(
     (a, b) =>
-      new Date(b.utcDate).getTime() -
-      new Date(a.utcDate).getTime(),
-  );
-
-const recentResults = allFinishedMatches.slice(0, 5);
+      new Date(a.utcDate).getTime() -
+      new Date(b.utcDate).getTime(),
+  )
+  .slice(0, 5);
 
 const allFinishedMatches = normaliseMatches(resultsData)
   .sort(
