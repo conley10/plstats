@@ -444,15 +444,26 @@ const understatId = isUnderstatOnly
         readUnderstatPlayers(currentSeason),
       ]);
 
-    const footballPlayers =
-      normaliseFootballDataPlayers(scorersData);
+const footballPlayers =
+  normaliseFootballDataPlayers(scorersData);
 
-    const currentPlayers = mergePlayers(
-      footballPlayers,
-      currentUnderstatPlayers,
-    );
+const mergedFootballPlayers = mergePlayers(
+  footballPlayers,
+  currentUnderstatPlayers,
+);
 
-    const currentPlayer = currentPlayers.find(
+const currentPlayers = addUnderstatOnlyPlayers(
+  mergedFootballPlayers,
+  currentUnderstatPlayers,
+);
+
+const currentPlayer = isUnderstatOnly
+  ? currentPlayers.find(
+      (player) =>
+        String(player.understatId) ===
+        String(understatId),
+    )
+  : currentPlayers.find(
       (player) => player.id === playerId,
     );
 
