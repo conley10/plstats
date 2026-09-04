@@ -447,7 +447,7 @@ export default function ComparePlayersPage() {
         setError("");
 
         const data = await getPlayers({
-          limit: 100,
+          limit: 500,
         });
 
         if (!cancelled) {
