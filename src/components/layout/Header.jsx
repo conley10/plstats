@@ -1,29 +1,74 @@
-import { Menu, X } from 'lucide-react'
-import { useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import {
+  Menu,
+  Sparkles,
+  X,
+} from "lucide-react";
 
-import GlobalSearch from './GlobalSearch'
+import {
+  useState,
+} from "react";
+
+import {
+  NavLink,
+} from "react-router-dom";
+
+import GlobalSearch from "./GlobalSearch";
 
 const navigation = [
-  { label: 'Home', path: '/' },
-  { label: 'Players', path: '/players' },
-  { label: 'Rankings', path: '/players/rankings' },
-  { label: 'Teams', path: '/teams' },
-  { label: 'Fixtures', path: '/fixtures' },
-  { label: 'Table', path: '/table' },
-]
+  {
+    label: "Home",
+    path: "/",
+  },
 
-function getNavClass({ isActive }) {
+  {
+    label: "Players",
+    path: "/players",
+  },
+
+  {
+    label: "Rankings",
+    path: "/players/rankings",
+  },
+
+  {
+    label: "Teams",
+    path: "/teams",
+  },
+
+  {
+    label: "Fixtures",
+    path: "/fixtures",
+  },
+
+  {
+    label: "Table",
+    path: "/table",
+  },
+
+  {
+    label: "Fantasy",
+    path: "/fantasy",
+    fantasy: true,
+  },
+];
+
+function getNavClass({
+  isActive,
+}) {
   return [
-    'rounded-md px-3 py-2 text-sm font-semibold transition-colors',
+    "rounded-md px-3 py-2 text-sm font-semibold transition-colors",
+
     isActive
-      ? 'bg-accent-soft text-accent'
-      : 'text-muted hover:bg-surface-hover hover:text-white',
-  ].join(' ')
+      ? "bg-accent-soft text-accent"
+      : "text-muted hover:bg-surface-hover hover:text-white",
+  ].join(" ");
 }
 
 export default function Header() {
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [
+    menuOpen,
+    setMenuOpen,
+  ] = useState(false);
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-base/95 backdrop-blur">
@@ -31,22 +76,39 @@ export default function Header() {
         <NavLink
           to="/"
           className="font-display text-2xl font-extrabold tracking-tight text-white"
-          onClick={() => setMenuOpen(false)}
+          onClick={() =>
+            setMenuOpen(false)
+          }
         >
-          PL<span className="text-accent">STATS</span>
+          PL
+          <span className="text-accent">
+            STATS
+          </span>
         </NavLink>
 
         <nav className="hidden items-center gap-1 md:flex">
-          {navigation.map((item) => (
-            <NavLink
-  key={item.path}
-  to={item.path}
-  end
-  className={getNavClass}
->
-  {item.label}
-</NavLink>
-          ))}
+          {navigation.map(
+            (item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                end
+                className={
+                  getNavClass
+                }
+              >
+                <span className="flex items-center gap-1.5">
+                  {item.fantasy && (
+                    <Sparkles
+                      size={14}
+                    />
+                  )}
+
+                  {item.label}
+                </span>
+              </NavLink>
+            ),
+          )}
         </nav>
 
         <div className="ml-auto hidden items-center md:flex">
@@ -56,15 +118,26 @@ export default function Header() {
         <button
           type="button"
           className="secondary-button ml-auto h-10 w-10 px-0 md:hidden"
-          onClick={() => setMenuOpen((current) => !current)}
+          onClick={() =>
+            setMenuOpen(
+              (current) =>
+                !current,
+            )
+          }
           aria-label={
             menuOpen
-              ? 'Close navigation menu'
-              : 'Open navigation menu'
+              ? "Close navigation menu"
+              : "Open navigation menu"
           }
-          aria-expanded={menuOpen}
+          aria-expanded={
+            menuOpen
+          }
         >
-          {menuOpen ? <X size={20} /> : <Menu size={20} />}
+          {menuOpen ? (
+            <X size={20} />
+          ) : (
+            <Menu size={20} />
+          )}
         </button>
       </div>
 
@@ -75,20 +148,36 @@ export default function Header() {
           </div>
 
           <nav className="flex flex-col gap-1">
-            {navigation.map((item) => (
-              <NavLink
-  key={item.path}
-  to={item.path}
-  end
-  className={getNavClass}
-  onClick={() => setMenuOpen(false)}
->
-  {item.label}
-</NavLink>
-            ))}
+            {navigation.map(
+              (item) => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  end
+                  className={
+                    getNavClass
+                  }
+                  onClick={() =>
+                    setMenuOpen(
+                      false,
+                    )
+                  }
+                >
+                  <span className="flex items-center gap-2">
+                    {item.fantasy && (
+                      <Sparkles
+                        size={14}
+                      />
+                    )}
+
+                    {item.label}
+                  </span>
+                </NavLink>
+              ),
+            )}
           </nav>
         </div>
       )}
     </header>
-  )
+  );
 }
