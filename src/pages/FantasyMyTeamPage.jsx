@@ -6,7 +6,6 @@ import {
   Crown,
   RotateCcw,
   Search,
-  Sparkles,
   Star,
   Target,
   TrendingUp,
@@ -915,16 +914,7 @@ export default function FantasyMyTeamPage() {
       <FantasyTabs />
 
       <section className="mb-6 rounded-xl border border-border bg-surface p-6 shadow-panel md:p-8">
-        <div className="mb-3 flex items-center gap-2">
-          <Sparkles
-            size={17}
-            className="text-accent"
-          />
-
-          <span className="section-label">
-            PLStats Fantasy
-          </span>
-        </div>
+        
 
         <h1 className="page-heading text-gradient">
           My Team
