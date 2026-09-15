@@ -10,6 +10,10 @@ const dataDirectory = path.resolve(
   "../data",
 );
 
+const understatPlayersCache = new Map();
+
+let availableSeasonsCache = null;
+
 export function normaliseName(value = "") {
   return String(value)
     .toLowerCase()
@@ -28,9 +32,17 @@ export function normaliseTeamName(value = "") {
 }
 
 export async function readUnderstatPlayers(season) {
+  const seasonKey = Number(season);
+
+  if (understatPlayersCache.has(seasonKey)) {
+    return understatPlayersCache.get(
+      seasonKey,
+    );
+  }
+
   const filePath = path.join(
     dataDirectory,
-    `understat-players-${season}.json`,
+    `understat-players-${seasonKey}.json`,
   );
 
   try {
@@ -41,9 +53,21 @@ export async function readUnderstatPlayers(season) {
 
     const data = JSON.parse(fileContents);
 
-    return data.players || [];
+    const players = data.players || [];
+
+    understatPlayersCache.set(
+      seasonKey,
+      players,
+    );
+
+    return players;
   } catch (error) {
     if (error.code === "ENOENT") {
+      understatPlayersCache.set(
+        seasonKey,
+        [],
+      );
+
       return [];
     }
 
@@ -52,10 +76,15 @@ export async function readUnderstatPlayers(season) {
 }
 
 export async function getAvailableUnderstatSeasons() {
-  try {
-    const files = await fs.readdir(dataDirectory);
+  if (availableSeasonsCache) {
+    return availableSeasonsCache;
+  }
 
-    return files
+  try {
+    const files =
+      await fs.readdir(dataDirectory);
+
+    const seasons = files
       .map((fileName) => {
         const match = fileName.match(
           /^understat-players-(\d{4})\.json$/,
@@ -65,10 +94,18 @@ export async function getAvailableUnderstatSeasons() {
           ? Number(match[1])
           : null;
       })
-      .filter((season) => season !== null)
+      .filter(
+        (season) => season !== null,
+      )
       .sort((a, b) => a - b);
+
+    availableSeasonsCache = seasons;
+
+    return seasons;
   } catch (error) {
     if (error.code === "ENOENT") {
+      availableSeasonsCache = [];
+
       return [];
     }
 

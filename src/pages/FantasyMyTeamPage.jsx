@@ -28,7 +28,7 @@ import {
 
 import {
   analyseFantasySquad,
-  getFantasyPredictions,
+  getFantasyPlayers,
 } from "../api/fantasyApi";
 
 const POSITION_REQUIREMENTS = {
@@ -288,15 +288,6 @@ function PlayerRow({
         m
       </td>
 
-      <td>
-        <span className="font-semibold text-accent">
-          {Number(
-            player.prediction
-              ?.predictedPoints ||
-              0,
-          ).toFixed(1)}
-        </span>
-      </td>
 
       <td>
         {
@@ -520,15 +511,14 @@ export default function FantasyMyTeamPage() {
           true,
         );
 
-        const response =
-          await getFantasyPredictions({
-            limit: 700,
-          });
+const response =
+  await getFantasyPlayers({
+    limit: 700,
+  });
 
-        setPlayers(
-          response.predictions ||
-            [],
-        );
+setPlayers(
+  response.players || [],
+);
       } catch (
         loadError
       ) {
@@ -1653,10 +1643,6 @@ const remainingBudget =
 
                   <th>
                     Price
-                  </th>
-
-                  <th>
-                    Pred
                   </th>
 
                   <th>

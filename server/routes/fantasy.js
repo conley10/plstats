@@ -26,6 +26,14 @@ const UNDERSTAT_CURRENT_SEASON =
       2026,
   );
 
+  const PREDICTION_CACHE_DURATION =
+  15 * 60 * 1000;
+
+let predictionCache = {
+  data: null,
+  timestamp: 0,
+};
+
 function numberOrZero(value) {
   const number = Number(value);
 
@@ -618,6 +626,38 @@ router.get(
         ),
       ]);
 
+            const requestedLimit =
+        Math.min(
+          Number.parseInt(
+            req.query.limit,
+            10,
+          ) || 100,
+          700,
+        );
+
+      const now = Date.now();
+
+      if (
+        predictionCache.data &&
+        now -
+          predictionCache.timestamp <
+          PREDICTION_CACHE_DURATION
+      ) {
+        return res.json({
+          ...predictionCache.data,
+          count:
+            predictionCache.data
+              .predictions.length,
+          predictions:
+            predictionCache.data
+              .predictions.slice(
+                0,
+                requestedLimit,
+              ),
+          cached: true,
+        });
+      }
+
       const teamMap =
         createTeamMap(
           bootstrap.teams,
@@ -645,14 +685,6 @@ router.get(
           });
       }
 
-      const limit =
-        Math.min(
-          Number.parseInt(
-            req.query.limit,
-            10,
-          ) || 100,
-          700,
-        );
 
       const fplPlayers =
         bootstrap.elements.map(
@@ -772,28 +804,53 @@ router.get(
             .predictedPoints,
       );
 
-      return res.json({
-        gameweek:
-          nextGameweek.id,
+      predictions.sort(
+  (a, b) =>
+    b.prediction.predictedPoints -
+    a.prediction.predictedPoints,
+);
 
-        count:
-          predictions.length,
+const responseData = {
+  gameweek:
+    nextGameweek.id,
 
-        matchedPlayers:
-          predictions.filter(
-            (player) =>
-              player.understatMatched,
-          ).length,
+  count:
+    predictions.length,
 
-        model:
-          "PLStats V1",
+  matchedPlayers:
+    predictions.filter(
+      (player) =>
+        player.understatMatched,
+    ).length,
 
-        predictions:
-          predictions.slice(
-            0,
-            limit,
-          ),
-      });
+  model:
+    "PLStats V1",
+
+  predictions,
+};
+
+predictionCache = {
+  data: responseData,
+  timestamp: Date.now(),
+};
+
+return res.json({
+  ...responseData,
+
+  predictions:
+    responseData.predictions.slice(
+      0,
+      requestedLimit,
+    ),
+
+  count:
+    Math.min(
+      responseData.predictions.length,
+      requestedLimit,
+    ),
+
+  cached: false,
+});
     } catch (error) {
       console.error(
         "GET /api/fantasy/predictions failed:",
