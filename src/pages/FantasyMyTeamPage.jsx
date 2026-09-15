@@ -592,20 +592,24 @@ export default function FantasyMyTeamPage() {
       ],
     );
 
-  const totalCost =
-    selectedPlayers.reduce(
-      (total, player) =>
-        total +
+const totalCostTenths =
+  selectedPlayers.reduce(
+    (total, player) =>
+      total +
+      Math.round(
         Number(
-          player.price ||
-            0,
-        ),
-      0,
-    );
+          player.price || 0,
+        ) * 10,
+      ),
+    0,
+  );
 
-  const remainingBudget =
-    100 -
-    totalCost;
+const totalCost =
+  totalCostTenths / 10;
+
+const remainingBudget =
+  (1000 - totalCostTenths) /
+  10;
 
   const positionCounts =
     selectedPlayers.reduce(
@@ -742,16 +746,24 @@ export default function FantasyMyTeamPage() {
       return false;
     }
 
-    if (
-      totalCost +
+const totalCostTenths =
+  selectedPlayers.reduce(
+    (total, player) =>
+      total +
+      Math.round(
         Number(
-          player.price ||
-            0,
-        ) >
-      100
-    ) {
-      return false;
-    }
+          player.price || 0,
+        ) * 10,
+      ),
+    0,
+  );
+
+const totalCost =
+  totalCostTenths / 10;
+
+const remainingBudget =
+  (1000 - totalCostTenths) /
+  10;
 
     return true;
   }

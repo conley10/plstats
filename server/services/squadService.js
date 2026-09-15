@@ -1,5 +1,6 @@
 const SQUAD_SIZE = 15;
 const MAX_BUDGET = 100;
+const MAX_BUDGET_TENTHS = 1000;
 
 const POSITION_LIMITS = {
   GKP: 2,
@@ -46,16 +47,20 @@ export function validateSquad({
   const totalPlayers =
     selectedPlayers.length;
 
-  const totalCost =
-    selectedPlayers.reduce(
-      (total, player) =>
-        total +
+const totalCostTenths =
+  selectedPlayers.reduce(
+    (total, player) =>
+      total +
+      Math.round(
         safeNumber(
           player.now_cost,
-        ) /
-          10,
-      0,
-    );
+        ),
+      ),
+    0,
+  );
+
+const totalCost =
+  totalCostTenths / 10;
 
   const positionCounts = {
     GKP: 0,
@@ -114,13 +119,16 @@ export function validateSquad({
     }
   }
 
-  if (totalCost > MAX_BUDGET) {
-    errors.push(
-      `Squad value exceeds £${MAX_BUDGET.toFixed(
-        1,
-      )}m.`,
-    );
-  }
+if (
+  totalCostTenths >
+  MAX_BUDGET_TENTHS
+) {
+  errors.push(
+    `Squad value exceeds £${MAX_BUDGET.toFixed(
+      1,
+    )}m.`,
+  );
+}
 
   for (const [
     teamId,
