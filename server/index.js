@@ -16,6 +16,7 @@ import fantasyRouter from "./routes/fantasy.js";
 import fantasySquadRouter from "./routes/fantasySquad.js";
 import fantasyTransfersRouter from "./routes/fantasyTransfers.js";
 import fantasyMultiTransfersRouter from "./routes/fantasyMultiTransfers.js";
+import transferValueRouter from "./routes/transferValue.js";
 
 const app = express();
 
@@ -106,6 +107,11 @@ app.use(
 app.use(
   "/api/fantasy",
   fantasyRouter,
+);
+
+app.use(
+  "/api/transfer-values",
+  transferValueRouter,
 );
 
 const port =

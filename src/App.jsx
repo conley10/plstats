@@ -43,6 +43,8 @@ import NotFoundPage from "./pages/NotFoundPage";
 
 import FantasyTransfersPage from "./pages/FantasyTransfersPage";
 
+import TransferValuePage from "./pages/TransferValuePage";
+
 function PlaceholderPage({
   title,
 }) {
@@ -153,6 +155,11 @@ function App() {
           path="/fantasy/my-team"
           element={<FantasyMyTeamPage />}
         />
+
+        <Route
+  path="/transfer-values"
+  element={<TransferValuePage />}
+/>
 
         <Route
   path="/fantasy/transfers"

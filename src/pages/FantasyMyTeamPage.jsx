@@ -29,6 +29,7 @@ import {
 import {
   analyseFantasySquad,
   getFantasyPlayers,
+  importFantasySquad,
 } from "../api/fantasyApi";
 
 const POSITION_REQUIREMENTS = {
@@ -501,6 +502,26 @@ export default function FantasyMyTeamPage() {
   ] =
     useState(false);
 
+const [
+  managerId,
+  setManagerId,
+] = useState("");
+
+const [
+  importing,
+  setImporting,
+] = useState(false);
+
+const [
+  importedManager,
+  setImportedManager,
+] = useState(null);
+
+const [
+  importMessage,
+  setImportMessage,
+] = useState("");
+
   const analysisRef =
     useRef(null);
 
@@ -807,19 +828,79 @@ const remainingBudget =
     );
   }
 
-  function resetSquad() {
+function resetSquad() {
+  setSelectedIds([]);
+
+  setAnalysis(null);
+
+  setError("");
+
+  setImportedManager(null);
+
+  setImportMessage("");
+}
+
+async function handleImportSquad() {
+  const cleanManagerId =
+    managerId.trim();
+
+  if (!cleanManagerId) {
+    setError(
+      "Enter your FPL Team ID first.",
+    );
+    return;
+  }
+
+  try {
+    setImporting(true);
+    setError("");
+    setImportMessage("");
+
+    const response =
+      await importFantasySquad(
+        cleanManagerId,
+      );
+
+    if (
+      !Array.isArray(
+        response.playerIds,
+      ) ||
+      response.playerIds.length !== 15
+    ) {
+      throw new Error(
+        "Imported squad did not contain 15 players.",
+      );
+    }
+
     setSelectedIds(
-      [],
+      response.playerIds,
     );
 
-    setAnalysis(
-      null,
+    setImportedManager(
+      response.manager || null,
+    );
+
+    setImportMessage(
+      `Imported ${
+        response.manager?.teamName ||
+        "FPL team"
+      } successfully.`,
+    );
+  } catch (importError) {
+    console.error(
+      importError,
     );
 
     setError(
-      "",
+      importError.response?.data
+        ?.error ||
+        importError.message ||
+        "Unable to import FPL team.",
     );
+  } finally {
+    setImporting(false);
   }
+}
 
   async function handleAnalyseSquad() {
     try {
@@ -945,6 +1026,120 @@ const remainingBudget =
           prediction model.
         </p>
       </section>
+
+      <section className="mb-6 panel p-6">
+  <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
+    <div>
+      <span className="section-label">
+        Import FPL Team
+      </span>
+
+      <h2 className="mt-1 font-display text-2xl font-bold">
+        Load your current squad
+      </h2>
+
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-light">
+        Enter your FPL Team ID and
+        PLStats will automatically
+        load your current 15-player
+        squad. You can still build
+        or edit your team manually
+        below.
+      </p>
+
+      <div className="mt-5 flex max-w-xl flex-col gap-3 sm:flex-row">
+        <input
+          type="text"
+          inputMode="numeric"
+          value={managerId}
+          onChange={(event) =>
+            setManagerId(
+              event.target.value.replace(
+                /\D/g,
+                "",
+              ),
+            )
+          }
+          onKeyDown={(event) => {
+            if (
+              event.key === "Enter" &&
+              !importing
+            ) {
+              handleImportSquad();
+            }
+          }}
+          placeholder="Enter FPL Team ID"
+          className="form-control flex-1"
+        />
+
+        <button
+          type="button"
+          onClick={
+            handleImportSquad
+          }
+          disabled={
+            importing ||
+            !managerId.trim()
+          }
+          className="primary-button whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <Users size={16} />
+
+          {importing
+            ? "Importing..."
+            : "Import Team"}
+        </button>
+      </div>
+    </div>
+
+    {importedManager && (
+      <div className="rounded-lg border border-accent/30 bg-accent-soft p-4 lg:min-w-64">
+        <div className="text-xs font-semibold uppercase tracking-wide text-accent">
+          Imported Team
+        </div>
+
+        <div className="mt-2 font-display text-xl font-bold">
+          {importedManager.teamName}
+        </div>
+
+        {importedManager.name && (
+          <div className="mt-1 text-sm text-muted-light">
+            {importedManager.name}
+          </div>
+        )}
+
+        <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted">
+          {importedManager.overallRank && (
+            <span>
+              Rank{" "}
+              {Number(
+                importedManager.overallRank,
+              ).toLocaleString()}
+            </span>
+          )}
+
+          <span>
+            {Number(
+              importedManager.overallPoints ||
+                0,
+            ).toLocaleString()}{" "}
+            pts
+          </span>
+        </div>
+      </div>
+    )}
+  </div>
+
+  {importMessage && (
+    <div className="mt-4 flex items-center gap-2 rounded-lg border border-success/30 bg-success/10 p-3 text-sm text-success">
+      <CheckCircle2
+        size={16}
+      />
+
+      {importMessage}
+    </div>
+  )}
+</section>
 
       {error && (
         <div className="mb-6 rounded-lg border border-danger/40 bg-danger/10 p-4 text-sm text-danger">

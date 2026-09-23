@@ -24,3 +24,7 @@ dist-ssr
 *.sw?
 .env
 .env.local
+
+python/transfer_value/data/raw/
+python/transfer_value/data/processed/*.csv
+python/transfer_value/models/*.joblib

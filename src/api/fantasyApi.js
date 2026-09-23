@@ -122,6 +122,17 @@ export async function analyseFantasySquad(
   return response.data;
 }
 
+export async function importFantasySquad(
+  managerId,
+) {
+  const response =
+    await apiClient.get(
+      `/fantasy/squad/import/${managerId}`,
+    );
+
+  return response.data;
+}
+
 export async function getFantasyTransferRecommendations({
   playerIds,
   outgoingPlayerId,

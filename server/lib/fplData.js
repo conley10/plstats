@@ -104,4 +104,30 @@ export async function getFplLiveGameweek(gameweek) {
   return response.data;
 }
 
+
+/**
+ * Fetch public information for an FPL manager/team.
+ */
+export async function getFplManager(managerId) {
+  const response = await fplClient.get(
+    `/entry/${managerId}/`,
+  );
+
+  return response.data;
+}
+
+/**
+ * Fetch an FPL manager's squad for a specific gameweek.
+ */
+export async function getFplManagerPicks(
+  managerId,
+  gameweek,
+) {
+  const response = await fplClient.get(
+    `/entry/${managerId}/event/${gameweek}/picks/`,
+  );
+
+  return response.data;
+}
+
 export default fplClient;

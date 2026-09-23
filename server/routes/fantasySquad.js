@@ -3,6 +3,8 @@ import express from "express";
 import {
   getFplBootstrap,
   getFplFixtures,
+  getFplManager,
+  getFplManagerPicks,
 } from "../lib/fplData.js";
 
 import {
@@ -364,6 +366,195 @@ function getRequestedPlayers(
     players,
   };
 }
+
+/*
+ * GET /api/fantasy/squad/import/:managerId
+ *
+ * Import a public FPL manager's current squad.
+ */
+router.get(
+  "/import/:managerId",
+  async (req, res) => {
+    try {
+      const managerId =
+        Number(req.params.managerId);
+
+      if (
+        !Number.isInteger(managerId) ||
+        managerId <= 0
+      ) {
+        return res
+          .status(400)
+          .json({
+            error:
+              "Invalid FPL manager ID.",
+          });
+      }
+
+      const [
+        bootstrap,
+        manager,
+      ] = await Promise.all([
+        getFplBootstrap(),
+        getFplManager(managerId),
+      ]);
+
+      const currentGameweek =
+        getCurrentGameweek(
+          bootstrap.events,
+        );
+
+      if (!currentGameweek) {
+        return res
+          .status(404)
+          .json({
+            error:
+              "No active FPL gameweek could be found.",
+          });
+      }
+
+      const picks =
+        await getFplManagerPicks(
+          managerId,
+          currentGameweek.id,
+        );
+
+      const playerIds =
+        (picks.picks || []).map(
+          (pick) => pick.element,
+        );
+
+      if (playerIds.length !== 15) {
+        return res
+          .status(400)
+          .json({
+            error:
+              "The imported FPL squad does not contain 15 players.",
+          });
+      }
+
+      const result =
+        getRequestedPlayers(
+          playerIds,
+          bootstrap,
+        );
+
+      if (result.error) {
+        return res
+          .status(400)
+          .json({
+            error: result.error,
+          });
+      }
+
+      const teamMap =
+        createTeamMap(
+          bootstrap.teams,
+        );
+
+      const positionMap =
+        createPositionMap(
+          bootstrap.element_types,
+        );
+
+      const players =
+        result.players.map(
+          (player) =>
+            normaliseSelectedPlayer(
+              player,
+              teamMap,
+              positionMap,
+            ),
+        );
+
+      return res.json({
+        manager: {
+          id: manager.id,
+
+          name:
+            `${manager.player_first_name || ""} ${
+              manager.player_last_name || ""
+            }`.trim(),
+
+          teamName:
+            manager.name || "",
+
+          overallRank:
+            manager.summary_overall_rank ||
+            null,
+
+          overallPoints:
+            manager.summary_overall_points ||
+            0,
+        },
+
+        gameweek:
+          currentGameweek.id,
+
+        playerIds,
+
+        players,
+
+        picks:
+          (picks.picks || []).map(
+            (pick) => ({
+              playerId:
+                pick.element,
+
+              position:
+                pick.position,
+
+              multiplier:
+                pick.multiplier,
+
+              captain:
+                Boolean(
+                  pick.is_captain,
+                ),
+
+              viceCaptain:
+                Boolean(
+                  pick.is_vice_captain,
+                ),
+            }),
+          ),
+
+        entryHistory:
+          picks.entry_history || null,
+      });
+    } catch (error) {
+      console.error(
+        "GET /api/fantasy/squad/import failed:",
+        error.response?.data ||
+          error.message,
+      );
+
+      if (
+        error.response?.status === 404
+      ) {
+        return res
+          .status(404)
+          .json({
+            error:
+              "FPL manager or squad could not be found. Check the FPL ID and try again.",
+          });
+      }
+
+      return res
+        .status(500)
+        .json({
+          error:
+            "Unable to import FPL squad.",
+
+          details:
+            process.env.NODE_ENV ===
+            "development"
+              ? error.message
+              : undefined,
+        });
+    }
+  },
+);
 
 /*
  * GET /api/fantasy/squad/rules
