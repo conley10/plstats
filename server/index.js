@@ -118,20 +118,13 @@ const port =
   process.env.PORT ||
   3001;
 
-app.listen(
-  port,
-  "0.0.0.0",
-  () => {
-    console.log(
-      `PLStats API running on port ${port}`,
-    );
+const PORT = process.env.PORT || 3001;
 
-    console.log(
-      `Fantasy API: http://localhost:${port}/api/fantasy`,
-    );
+const server = app.listen(PORT, () => {
+  console.log(`PLStats API listening on port ${PORT}`);
+});
 
-    console.log(
-      `Fantasy Squad API: http://localhost:${port}/api/fantasy/squad`,
-    );
-  },
-);
+server.on("error", (error) => {
+  console.error("Server failed to start:", error);
+  process.exit(1);
+});
