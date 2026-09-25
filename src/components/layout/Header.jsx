@@ -40,16 +40,21 @@ const navigation = [
     path: "/fixtures",
   },
 
-  {
-    label: "Table",
-    path: "/table",
-  },
+{
+  label: "Table",
+  path: "/table",
+},
 
-  {
-    label: "Fantasy",
-    path: "/fantasy",
-    fantasy: true,
-  },
+{
+  label: "Transfer Values",
+  path: "/transfer-values",
+},
+
+{
+  label: "Fantasy",
+  path: "/fantasy",
+  fantasy: true,
+},
 ];
 
 function getNavClass({

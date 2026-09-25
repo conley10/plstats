@@ -14,11 +14,14 @@ import {
   Sparkles,
   TrendingUp,
   Users,
+  X,
 } from "lucide-react";
 
 import {
   getTransferValues,
 } from "../api/transferValueApi";
+
+import MarketValueChart from "../components/transfer-value/MarketValueChart";
 
 
 function formatMoney(value) {
@@ -514,13 +517,6 @@ export default function TransferValuePage() {
         if (!cancelled) {
           setData(response);
 
-          if (
-            response.players?.length
-          ) {
-            setSelectedPlayer(
-              response.players[0],
-            );
-          }
         }
       } catch (requestError) {
         console.error(
@@ -753,30 +749,7 @@ export default function TransferValuePage() {
             </p>
           </div>
 
-          <div className="min-w-72 rounded-2xl border border-accent/30 bg-accent-soft p-5">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-accent/40 bg-black/15">
-                <BrainCircuit
-                  size={24}
-                  className="text-accent"
-                />
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-accent">
-                  V5 model
-                </p>
-
-                <p className="mt-1 text-xl font-black text-white">
-                  Random Forest
-                </p>
-
-                <p className="text-sm text-muted-light">
-                  2025 unseen MAE ≈ €2.18m
-                </p>
-              </div>
-            </div>
-          </div>
+          
         </div>
       </section>
 
@@ -824,6 +797,113 @@ export default function TransferValuePage() {
       </section>
 
 
+      {/* PLAYER SEARCH / LANDING STATE */}
+
+      {!selectedPlayer && (
+        <section className="panel mt-6 overflow-hidden p-6 md:p-8">
+          <div className="mx-auto max-w-4xl text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-accent/30 bg-accent-soft">
+              <Search size={24} className="text-accent" />
+            </div>
+
+            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.22em] text-accent">
+              Player valuation
+            </p>
+
+            <h2 className="mt-2 text-2xl font-black text-white md:text-3xl">
+              Search for a Premier League player
+            </h2>
+
+            <p className="mx-auto mt-3 max-w-2xl leading-7 text-muted-light">
+              Choose a player to open their PLStats market-value prediction,
+              performance profile, valuation insights and value trajectory.
+            </p>
+
+            <div className="relative mx-auto mt-7 max-w-2xl">
+              <Search
+                size={20}
+                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted"
+              />
+
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setVisibleCount(25);
+                }}
+                placeholder="Search player or club..."
+                className="w-full rounded-2xl border border-border bg-black/20 py-4 pl-12 pr-4 text-base text-white outline-none transition focus:border-accent/60 placeholder:text-muted"
+              />
+            </div>
+
+            {search.trim() && (
+              <div className="mx-auto mt-4 max-w-2xl overflow-hidden rounded-2xl border border-border bg-black/20 text-left">
+                {filteredPlayers.slice(0, 6).map((player) => (
+                  <button
+                    key={`quick-${player.understatId}-${player.season}`}
+                    type="button"
+                    onClick={() => {
+                      setSelectedPlayer(player);
+                      setSearch("");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="flex w-full items-center justify-between gap-4 border-b border-border px-5 py-4 text-left transition last:border-b-0 hover:bg-white/5"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-bold text-white">
+                        {player.player}
+                      </p>
+                      <p className="mt-1 truncate text-sm text-muted">
+                        {player.team} · {formatPosition(player)}
+                      </p>
+                    </div>
+
+                    <div className="shrink-0 text-right">
+                      <p className="font-black text-accent">
+                        {formatMoney(player.predictedMarketValueEur)}
+                      </p>
+                      <p className="mt-1 text-xs text-muted">
+                        PLStats prediction
+                      </p>
+                    </div>
+                  </button>
+                ))}
+
+                {!filteredPlayers.length && (
+                  <div className="px-5 py-6 text-center text-sm text-muted">
+                    No matching players found.
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="mt-7 grid gap-3 text-left sm:grid-cols-3">
+              <div className="rounded-xl border border-border bg-black/20 p-4">
+                <p className="text-sm font-bold text-white">Search a player</p>
+                <p className="mt-1 text-xs leading-5 text-muted">
+                  Find any player included in the current model dataset.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-border bg-black/20 p-4">
+                <p className="text-sm font-bold text-white">Inspect the prediction</p>
+                <p className="mt-1 text-xs leading-5 text-muted">
+                  See predicted value, change, performance and model insights.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-border bg-black/20 p-4">
+                <p className="text-sm font-bold text-white">Track value movement</p>
+                <p className="mt-1 text-xs leading-5 text-muted">
+                  Compare historical valuation with the latest PLStats estimate.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* SELECTED PLAYER */}
 
       {selectedPlayer && (
@@ -831,6 +911,19 @@ export default function TransferValuePage() {
           <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-start">
 
             <div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPlayer(null);
+                  setSearch("");
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="mb-5 inline-flex items-center gap-2 rounded-xl border border-border bg-black/20 px-3 py-2 text-xs font-semibold text-muted-light transition hover:border-accent/40 hover:text-white"
+              >
+                <X size={14} />
+                Choose another player
+              </button>
+
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
                 Player valuation
               </p>
@@ -1031,112 +1124,14 @@ export default function TransferValuePage() {
             </div>
           </div>
 
-{/* MARKET VALUE TRAJECTORY */}
+{/* MARKET VALUE & TRANSFER HISTORY */}
 
-<div className="mt-8 border-t border-border pt-7">
-  <div>
-    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
-      Value trajectory
-    </p>
-
-    <h3 className="mt-1 text-xl font-black text-white">
-      Market value progression
-    </h3>
-
-    <p className="mt-2 text-sm text-muted">
-      Historical market values compared with the PLStats prediction.
-    </p>
-  </div>
-
-  <div className="mt-6 grid items-center gap-4 md:grid-cols-[1fr_auto_1fr_auto_1fr]">
-
-    {/* ONE YEAR AGO */}
-
-    <div className="rounded-xl border border-border bg-black/20 p-5">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-        1 year ago
-      </p>
-
-      <p className="mt-2 text-2xl font-black text-white">
-        {formatMoney(
-          selectedPlayer.marketValueOneYearAgoEur,
-        )}
-      </p>
-
-      <p className="mt-2 text-xs text-muted">
-        Historical valuation
-      </p>
-    </div>
-
-    <div className="hidden text-muted md:block">
-      →
-    </div>
-
-    {/* PREVIOUS VALUE */}
-
-    <div className="rounded-xl border border-border bg-black/20 p-5">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-        Previous value
-      </p>
-
-      <p className="mt-2 text-2xl font-black text-white">
-        {formatMoney(
-          selectedPlayer.previousMarketValueEur,
-        )}
-      </p>
-
-      <div className="mt-2">
-        <ValueChange
-          value={
-            selectedPlayer.previousMarketValueEur -
-            selectedPlayer.marketValueOneYearAgoEur
-          }
-          percent={
-            selectedPlayer.marketValueOneYearAgoEur
-              ? ((selectedPlayer.previousMarketValueEur -
-                  selectedPlayer.marketValueOneYearAgoEur) /
-                  selectedPlayer.marketValueOneYearAgoEur) *
-                100
-              : 0
-          }
-        />
-      </div>
-    </div>
-
-    <div className="hidden text-muted md:block">
-      →
-    </div>
-
-    {/* PLSTATS PREDICTION */}
-
-    <div className="rounded-xl border border-accent/30 bg-accent-soft p-5">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">
-        PLStats prediction
-      </p>
-
-      <p className="mt-2 text-2xl font-black text-accent">
-        {formatMoney(
-          selectedPlayer.predictedMarketValueEur,
-        )}
-      </p>
-
-      <div className="mt-2">
-        <ValueChange
-          value={
-            selectedPlayer.predictedChangeEur
-          }
-          percent={
-            selectedPlayer.predictedChangePercent
-          }
-        />
-      </div>
-    </div>
-  </div>
-</div>
+          <div className="mt-8 border-t border-border pt-7">
+            <MarketValueChart player={selectedPlayer} />
+          </div>
 
         </section>
       )}
-
 
       {/* FILTERS */}
 
@@ -1352,9 +1347,11 @@ export default function TransferValuePage() {
                   key={`${player.understatId}-${player.season}`}
                   player={player}
                   rank={index + 1}
-                  onSelect={
-                    setSelectedPlayer
-                  }
+                  onSelect={(player) => {
+                    setSelectedPlayer(player);
+                    setSearch("");
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
                 />
               ),
             )}

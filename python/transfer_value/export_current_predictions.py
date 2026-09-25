@@ -11,7 +11,6 @@ import pandas as pd
 # --------------------------------------------------
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-
 TRANSFER_DIR = PROJECT_ROOT / "python" / "transfer_value"
 
 DATA_FILE = (
@@ -19,6 +18,20 @@ DATA_FILE = (
     / "data"
     / "processed"
     / "training_dataset.csv"
+)
+
+VALUATIONS_FILE = (
+    TRANSFER_DIR
+    / "data"
+    / "raw"
+    / "player_valuations.csv.gz"
+)
+
+TRANSFERS_FILE = (
+    TRANSFER_DIR
+    / "data"
+    / "raw"
+    / "transfers.csv.gz"
 )
 
 MODEL_FILE = (
@@ -37,7 +50,7 @@ OUTPUT_FILE = (
 
 # --------------------------------------------------
 # Model features
-# Must match train_model_v5.py exactly
+# Must match train_model_v5.py
 # --------------------------------------------------
 
 NUMERICAL_FEATURES = [
@@ -92,14 +105,122 @@ def clean_number(value):
     return value
 
 
-def player_to_json(row):
+def clean_int(value):
+    if pd.isna(value):
+        return None
+
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def clean_date(value):
+    if pd.isna(value):
+        return None
+
+    try:
+        return pd.Timestamp(value).strftime("%Y-%m-%d")
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def build_valuation_history(player_id, valuations_by_player):
+    if player_id is None:
+        return []
+
+    history = valuations_by_player.get(player_id)
+
+    if history is None or history.empty:
+        return []
+
+    result = []
+
+    for _, valuation in history.iterrows():
+        value = clean_int(
+            valuation.get("market_value_in_eur")
+        )
+
+        date = clean_date(
+            valuation.get("date")
+        )
+
+        if value is None or date is None:
+            continue
+
+        result.append({
+            "date": date,
+            "valueEur": value,
+            "club": clean_number(
+                valuation.get("current_club_name")
+            ),
+        })
+
+    return result
+
+
+def build_transfer_history(player_id, transfers_by_player):
+    if player_id is None:
+        return []
+
+    history = transfers_by_player.get(player_id)
+
+    if history is None or history.empty:
+        return []
+
+    result = []
+
+    for _, transfer in history.iterrows():
+        transfer_date = clean_date(
+            transfer.get("transfer_date")
+        )
+
+        if transfer_date is None:
+            continue
+
+        result.append({
+            "date": transfer_date,
+
+            "season": clean_number(
+                transfer.get("transfer_season")
+            ),
+
+            "fromClub": clean_number(
+                transfer.get("from_club_name")
+            ),
+
+            "toClub": clean_number(
+                transfer.get("to_club_name")
+            ),
+
+            "feeEur": clean_int(
+                transfer.get("transfer_fee")
+            ),
+
+            "marketValueEur": clean_int(
+                transfer.get("market_value_in_eur")
+            ),
+        })
+
+    return result
+
+
+def player_to_json(
+    row,
+    valuations_by_player,
+    transfers_by_player,
+):
     predicted_value = max(
-        float(row["predicted_market_value_eur"]),
+        float(
+            row["predicted_market_value_eur"]
+        ),
         0,
     )
 
     predicted_change = float(
-        row["predicted_market_value_change_eur"]
+        row[
+            "predicted_market_value_change_eur"
+        ]
     )
 
     previous_value = float(
@@ -115,10 +236,30 @@ def player_to_json(row):
     else:
         change_percent = None
 
+    player_id = clean_int(
+        row.get("transfermarkt_id")
+    )
+
+    valuation_history = (
+        build_valuation_history(
+            player_id,
+            valuations_by_player,
+        )
+    )
+
+    transfer_history = (
+        build_transfer_history(
+            player_id,
+            transfers_by_player,
+        )
+    )
+
     return {
         "understatId": clean_number(
             row.get("understat_id")
         ),
+
+        "transfermarktId": player_id,
 
         "player": row["player"],
 
@@ -130,9 +271,12 @@ def player_to_json(row):
             row.get("position")
         ),
 
-        "transfermarktPosition": clean_number(
-            row.get("transfermarkt_position")
-        ),
+        "transfermarktPosition":
+            clean_number(
+                row.get(
+                    "transfermarkt_position"
+                )
+            ),
 
         "age": clean_number(
             row.get("age")
@@ -149,8 +293,12 @@ def player_to_json(row):
 
         "predictedChangePercent":
             (
-                round(change_percent, 2)
-                if change_percent is not None
+                round(
+                    change_percent,
+                    2,
+                )
+                if change_percent
+                is not None
                 else None
             ),
 
@@ -236,9 +384,19 @@ def player_to_json(row):
             row.get("shots_per_90")
         ),
 
-        "keyPassesPer90": clean_number(
-            row.get("key_passes_per_90")
-        ),
+        "keyPassesPer90":
+            clean_number(
+                row.get(
+                    "key_passes_per_90"
+                )
+            ),
+
+        # NEW: full historical data
+        "valuationHistory":
+            valuation_history,
+
+        "transferHistory":
+            transfer_history,
     }
 
 
@@ -248,7 +406,8 @@ def player_to_json(row):
 
 def main():
     print(
-        "Loading PLStats V5 transfer-value model..."
+        "Loading PLStats V5 "
+        "transfer-value model..."
     )
 
     if not MODEL_FILE.exists():
@@ -256,23 +415,146 @@ def main():
             f"Model not found: {MODEL_FILE}"
         )
 
-    model = joblib.load(MODEL_FILE)
+    model = joblib.load(
+        MODEL_FILE
+    )
 
-    print(f"Model: {MODEL_FILE}")
+    print(
+        f"Model: {MODEL_FILE}"
+    )
 
     print()
-    print("Loading player dataset...")
+    print(
+        "Loading player dataset..."
+    )
 
     if not DATA_FILE.exists():
         raise FileNotFoundError(
             f"Dataset not found: {DATA_FILE}"
         )
 
-    data = pd.read_csv(DATA_FILE)
+    data = pd.read_csv(
+        DATA_FILE
+    )
 
     print(
         f"Rows loaded: {len(data):,}"
     )
+
+    # --------------------------------------------------
+    # Load historical valuations
+    # --------------------------------------------------
+
+    print()
+    print(
+        "Loading historical valuations..."
+    )
+
+    if not VALUATIONS_FILE.exists():
+        raise FileNotFoundError(
+            "Valuation dataset not found: "
+            f"{VALUATIONS_FILE}"
+        )
+
+    valuations = pd.read_csv(
+        VALUATIONS_FILE,
+        low_memory=False,
+    )
+
+    valuations["date"] = (
+        pd.to_datetime(
+            valuations["date"],
+            errors="coerce",
+        )
+    )
+
+    valuations = (
+        valuations
+        .dropna(
+            subset=[
+                "player_id",
+                "date",
+                "market_value_in_eur",
+            ]
+        )
+        .sort_values(
+            [
+                "player_id",
+                "date",
+            ]
+        )
+    )
+
+    print(
+        "Historical valuation rows: "
+        f"{len(valuations):,}"
+    )
+
+    valuations_by_player = {
+        int(player_id): group.copy()
+        for player_id, group
+        in valuations.groupby(
+            "player_id"
+        )
+    }
+
+    # --------------------------------------------------
+    # Load transfers
+    # --------------------------------------------------
+
+    print()
+    print(
+        "Loading transfer history..."
+    )
+
+    if not TRANSFERS_FILE.exists():
+        raise FileNotFoundError(
+            "Transfer dataset not found: "
+            f"{TRANSFERS_FILE}"
+        )
+
+    transfers = pd.read_csv(
+        TRANSFERS_FILE,
+        low_memory=False,
+    )
+
+    transfers[
+        "transfer_date"
+    ] = pd.to_datetime(
+        transfers[
+            "transfer_date"
+        ],
+        errors="coerce",
+    )
+
+    transfers = (
+        transfers
+        .dropna(
+            subset=[
+                "player_id",
+                "transfer_date",
+            ]
+        )
+        .sort_values(
+            [
+                "player_id",
+                "transfer_date",
+            ]
+        )
+    )
+
+    print(
+        "Transfer rows: "
+        f"{len(transfers):,}"
+    )
+
+    transfers_by_player = {
+        int(player_id): group.copy()
+        for player_id, group
+        in transfers.groupby(
+            "player_id"
+        )
+    }
 
     # --------------------------------------------------
     # Use newest season available
@@ -283,15 +565,18 @@ def main():
     )
 
     current = data[
-        data["season"] == latest_season
+        data["season"]
+        == latest_season
     ].copy()
 
+    print()
     print(
-        f"Latest season: {latest_season}"
+        f"Latest season: "
+        f"{latest_season}"
     )
 
     print(
-        f"Rows in latest season: "
+        "Rows in latest season: "
         f"{len(current):,}"
     )
 
@@ -311,19 +596,66 @@ def main():
     )
 
     # --------------------------------------------------
-    # Validate required features
+    # Find Transfermarkt ID column
+    # --------------------------------------------------
+
+    possible_id_columns = [
+        "transfermarkt_id",
+        "transfermarkt_player_id",
+        "player_id",
+    ]
+
+    id_column = next(
+        (
+            column
+            for column
+            in possible_id_columns
+            if column
+            in current.columns
+        ),
+        None,
+    )
+
+    if id_column is None:
+        raise ValueError(
+            "Could not find the "
+            "Transfermarkt player ID "
+            "inside training_dataset.csv."
+        )
+
+    if (
+        id_column
+        != "transfermarkt_id"
+    ):
+        current[
+            "transfermarkt_id"
+        ] = current[
+            id_column
+        ]
+
+    print(
+        "Transfermarkt ID column: "
+        f"{id_column}"
+    )
+
+    # --------------------------------------------------
+    # Validate required model features
     # --------------------------------------------------
 
     missing_features = [
         feature
-        for feature in FEATURES
-        if feature not in current.columns
+        for feature
+        in FEATURES
+        if feature
+        not in current.columns
     ]
 
     if missing_features:
         raise ValueError(
             "Missing model features: "
-            + ", ".join(missing_features)
+            + ", ".join(
+                missing_features
+            )
         )
 
     # --------------------------------------------------
@@ -335,8 +667,10 @@ def main():
         "Generating V5 predictions..."
     )
 
-    predicted_change = model.predict(
-        current[FEATURES]
+    predicted_change = (
+        model.predict(
+            current[FEATURES]
+        )
     )
 
     current[
@@ -358,22 +692,52 @@ def main():
     )
 
     # --------------------------------------------------
-    # Sort highest predicted values first
+    # Sort highest predictions first
     # --------------------------------------------------
 
-    current = current.sort_values(
-        "predicted_market_value_eur",
-        ascending=False,
+    current = (
+        current.sort_values(
+            "predicted_market_value_eur",
+            ascending=False,
+        )
     )
 
     # --------------------------------------------------
     # Convert to JSON
     # --------------------------------------------------
 
+    print(
+        "Attaching valuation and "
+        "transfer histories..."
+    )
+
     players = [
-        player_to_json(row)
-        for _, row in current.iterrows()
+        player_to_json(
+            row,
+            valuations_by_player,
+            transfers_by_player,
+        )
+        for _, row
+        in current.iterrows()
     ]
+
+    players_with_history = sum(
+        bool(
+            player[
+                "valuationHistory"
+            ]
+        )
+        for player in players
+    )
+
+    players_with_transfers = sum(
+        bool(
+            player[
+                "transferHistory"
+            ]
+        )
+        for player in players
+    )
 
     output = {
         "model": (
@@ -381,17 +745,25 @@ def main():
             "Tuned Random Forest"
         ),
 
-        "season": latest_season,
+        "season":
+            latest_season,
 
-        "playerCount": len(players),
+        "playerCount":
+            len(players),
 
         "validation": {
-            "unseen2025MAE": 2180000,
-            "unseen2025RMSE": 3650000,
-            "unseen2025R2": 0.975,
+            "unseen2025MAE":
+                2180000,
+
+            "unseen2025RMSE":
+                3650000,
+
+            "unseen2025R2":
+                0.975,
         },
 
-        "players": players,
+        "players":
+            players,
     }
 
     # --------------------------------------------------
@@ -429,8 +801,18 @@ def main():
     )
 
     print(
-        f"Players exported: "
+        "Players exported: "
         f"{len(players):,}"
+    )
+
+    print(
+        "Players with valuation history: "
+        f"{players_with_history:,}"
+    )
+
+    print(
+        "Players with transfer history: "
+        f"{players_with_transfers:,}"
     )
 
     print()
@@ -459,7 +841,9 @@ def main():
             preview_columns
         ]
         .head(10)
-        .to_string(index=False)
+        .to_string(
+            index=False
+        )
     )
 
 
