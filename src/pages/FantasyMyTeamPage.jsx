@@ -188,6 +188,7 @@ function RatingCard({
 function SelectedPlayer({
   player,
   onRemove,
+  purchasePrice,
 }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-base p-3">
@@ -214,15 +215,15 @@ function SelectedPlayer({
         </div>
 
         <div className="mt-1 text-xs text-muted">
-          {
-            player.team
-              ?.shortName
-          }{" "}
-          • £
-          {Number(
-            player.price,
-          ).toFixed(1)}
-          m
+          {player.team?.shortName}
+        </div>
+
+        <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px]">
+          <span className="text-muted">Bought <span className="font-semibold text-white">£{Number(purchasePrice ?? player.price ?? 0).toFixed(1)}m</span></span>
+          <span className="text-muted">Current <span className="font-semibold text-accent">£{Number(player.price || 0).toFixed(1)}m</span></span>
+          <span className={Number(player.price || 0) - Number(purchasePrice ?? player.price ?? 0) > 0 ? "font-semibold text-success" : Number(player.price || 0) - Number(purchasePrice ?? player.price ?? 0) < 0 ? "font-semibold text-danger" : "font-semibold text-muted-light"}>
+            {Number(player.price || 0) - Number(purchasePrice ?? player.price ?? 0) > 0 ? "+" : ""}£{(Number(player.price || 0) - Number(purchasePrice ?? player.price ?? 0)).toFixed(1)}m
+          </span>
         </div>
       </div>
 
@@ -467,6 +468,31 @@ export default function FantasyMyTeamPage() {
     });
 
   const [
+    squadFinances,
+    setSquadFinances,
+  ] = useState(() => {
+    try {
+      const stored = localStorage.getItem("plstats-fantasy-finances");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return {
+          purchasePrices: parsed.purchasePrices || {},
+          bank: Number.isFinite(Number(parsed.bank)) ? Number(parsed.bank) : null,
+          locked: Boolean(parsed.locked),
+        };
+      }
+    } catch {
+      // Use fresh finance state.
+    }
+
+    return {
+      purchasePrices: {},
+      bank: null,
+      locked: false,
+    };
+  });
+
+  const [
     search,
     setSearch,
   ] =
@@ -575,6 +601,13 @@ setPlayers(
   }, [selectedIds]);
 
   useEffect(() => {
+    localStorage.setItem(
+      "plstats-fantasy-finances",
+      JSON.stringify(squadFinances),
+    );
+  }, [squadFinances]);
+
+  useEffect(() => {
     if (
       analysis &&
       analysisRef.current
@@ -603,24 +636,33 @@ setPlayers(
       ],
     );
 
-const totalCostTenths =
+const currentSquadValue =
+  selectedPlayers.reduce(
+    (total, player) => total + Number(player.price || 0),
+    0,
+  );
+
+const purchaseSquadValue =
   selectedPlayers.reduce(
     (total, player) =>
       total +
-      Math.round(
-        Number(
-          player.price || 0,
-        ) * 10,
+      Number(
+        squadFinances.purchasePrices[player.id] ??
+          player.price ??
+          0,
       ),
     0,
   );
 
-const totalCost =
-  totalCostTenths / 10;
+const livePriceChange =
+  currentSquadValue - purchaseSquadValue;
 
 const remainingBudget =
-  (1000 - totalCostTenths) /
-  10;
+  squadFinances.locked && squadFinances.bank !== null
+    ? Number(squadFinances.bank)
+    : Math.max(100 - purchaseSquadValue, 0);
+
+const totalCost = purchaseSquadValue;
 
   const positionCounts =
     selectedPlayers.reduce(
@@ -757,25 +799,6 @@ const remainingBudget =
       return false;
     }
 
-const totalCostTenths =
-  selectedPlayers.reduce(
-    (total, player) =>
-      total +
-      Math.round(
-        Number(
-          player.price || 0,
-        ) * 10,
-      ),
-    0,
-  );
-
-const totalCost =
-  totalCostTenths / 10;
-
-const remainingBudget =
-  (1000 - totalCostTenths) /
-  10;
-
     return true;
   }
 
@@ -807,12 +830,30 @@ const remainingBudget =
       return;
     }
 
-    setSelectedIds(
-      (current) => [
-        ...current,
-        player.id,
-      ],
-    );
+    const nextIds = [...selectedIds, player.id];
+
+    setSquadFinances((current) => {
+      const purchasePrices = {
+        ...current.purchasePrices,
+        [player.id]: Number(player.price || 0),
+      };
+
+      const nextPurchaseValue = nextIds.reduce((total, id) => {
+        const selectedPlayer = players.find((item) => item.id === id);
+        return total + Number(purchasePrices[id] ?? selectedPlayer?.price ?? 0);
+      }, 0);
+
+      return {
+        purchasePrices,
+        bank:
+          nextIds.length === 15
+            ? Math.max(100 - nextPurchaseValue, 0)
+            : current.bank,
+        locked: nextIds.length === 15 ? true : current.locked,
+      };
+    });
+
+    setSelectedIds(nextIds);
   }
 
   function removePlayer(
@@ -821,15 +862,31 @@ const remainingBudget =
     setSelectedIds(
       (current) =>
         current.filter(
-          (id) =>
-            id !==
-            playerId,
+          (id) => id !== playerId,
         ),
     );
+
+    setSquadFinances((current) => {
+      const purchasePrices = { ...current.purchasePrices };
+      delete purchasePrices[playerId];
+
+      return {
+        ...current,
+        purchasePrices,
+        bank: null,
+        locked: false,
+      };
+    });
   }
 
 function resetSquad() {
   setSelectedIds([]);
+
+  setSquadFinances({
+    purchasePrices: {},
+    bank: null,
+    locked: false,
+  });
 
   setAnalysis(null);
 
@@ -872,9 +929,39 @@ async function handleImportSquad() {
       );
     }
 
+    const importedPurchasePrices =
+      response.playerIds.reduce(
+        (result, id) => {
+          const importedPlayer =
+            players.find(
+              (player) => player.id === id,
+            );
+
+          if (importedPlayer) {
+            result[id] = Number(importedPlayer.price || 0);
+          }
+
+          return result;
+        },
+        {},
+      );
+
+    const importedSquadValue =
+      response.playerIds.reduce(
+        (total, id) =>
+          total + Number(importedPurchasePrices[id] || 0),
+        0,
+      );
+
     setSelectedIds(
       response.playerIds,
     );
+
+    setSquadFinances({
+      purchasePrices: importedPurchasePrices,
+      bank: Math.max(100 - importedSquadValue, 0),
+      locked: true,
+    });
 
     setImportedManager(
       response.manager || null,
@@ -1159,20 +1246,28 @@ async function handleImportSquad() {
           icon={
             CircleDollarSign
           }
-          label="Squad Value"
-          value={`£${totalCost.toFixed(
+          label="Current Value"
+          value={`£${currentSquadValue.toFixed(
             1,
           )}m`}
-          subtext="Maximum £100.0m"
+          subtext={
+            selectedIds.length === 15
+              ? `${livePriceChange >= 0 ? "+" : ""}£${livePriceChange.toFixed(1)}m since selected`
+              : "Live FPL prices"
+          }
         />
 
         <SquadStat
           icon={WalletCards}
-          label="Remaining"
+          label="Bank"
           value={`£${remainingBudget.toFixed(
             1,
           )}m`}
-          subtext="Available budget"
+          subtext={
+            squadFinances.locked
+              ? "Saved squad bank"
+              : "Estimated while building"
+          }
         />
 
         <SquadStat
@@ -1273,6 +1368,9 @@ async function handleImportSquad() {
                     }
                     onRemove={
                       removePlayer
+                    }
+                    purchasePrice={
+                      squadFinances.purchasePrices[player.id]
                     }
                   />
                 ),
@@ -1385,12 +1483,12 @@ async function handleImportSquad() {
           <div className="mt-6 rounded-lg border border-border bg-base p-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted">
-                Budget used
+                Purchase value
               </span>
 
               <span className="font-semibold">
                 £
-                {totalCost.toFixed(
+                {purchaseSquadValue.toFixed(
                   1,
                 )}
                 m / £100.0m
