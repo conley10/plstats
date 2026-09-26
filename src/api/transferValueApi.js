@@ -38,6 +38,19 @@ export async function searchTransferValues(
   return response.data;
 }
 
+export async function getMarketOpportunities(
+  filters = {},
+) {
+  const response = await apiClient.get(
+    "/transfer-values/opportunities",
+    {
+      params: filters,
+    },
+  );
+
+  return response.data;
+}
+
 export async function getPlayerTransferValue(
   understatId,
 ) {
@@ -47,3 +60,20 @@ export async function getPlayerTransferValue(
 
   return response.data;
 }
+
+export async function getSimilarPlayers(
+  understatId,
+  limit = 10,
+) {
+  const response = await apiClient.get(
+    `/transfer-values/${understatId}/similar`,
+    {
+      params: {
+        limit,
+      },
+    },
+  );
+
+  return response.data;
+}
+

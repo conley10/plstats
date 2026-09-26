@@ -45,6 +45,8 @@ import FantasyTransfersPage from "./pages/FantasyTransfersPage";
 
 import TransferValuePage from "./pages/TransferValuePage";
 
+import MarketOpportunitiesPage from "./pages/MarketOpportunitiesPage";
+
 function PlaceholderPage({
   title,
 }) {
@@ -159,6 +161,13 @@ function App() {
         <Route
   path="/transfer-values"
   element={<TransferValuePage />}
+/>
+
+<Route
+  path="/market-opportunities"
+  element={
+    <MarketOpportunitiesPage />
+  }
 />
 
         <Route

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
+  ArrowLeftRight,
   BadgeCheck,
   Brain,
   ChartNoAxesCombined,
@@ -17,6 +18,7 @@ import {
   UserRoundSearch,
   WandSparkles,
   Zap,
+  CircleDollarSign,
 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import {
@@ -31,7 +33,12 @@ import {
 import {
   getPlayer,
   getPlayerHistory,
+  getPlayers,
 } from "../api/playersApi";
+
+import {
+  getSimilarPlayers,
+} from "../api/transferValueApi";
 
 const clamp = (value, minimum = 0, maximum = 100) =>
   Math.min(maximum, Math.max(minimum, Math.round(Number(value) || 0)));
@@ -40,6 +47,59 @@ const safeNumber = (value) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
 };
+
+function formatMarketValue(value) {
+  const amount = Number(value);
+
+  if (!Number.isFinite(amount)) {
+    return "—";
+  }
+
+  if (amount >= 1_000_000) {
+    return `€${(amount / 1_000_000).toFixed(1)}m`;
+  }
+
+  if (amount >= 1_000) {
+    return `€${(amount / 1_000).toFixed(0)}k`;
+  }
+
+  return `€${amount.toFixed(0)}`;
+}
+
+function getSimilarityStrength(similarity) {
+  const score = Number(similarity) || 0;
+
+  if (score >= 80) {
+    return "Very strong match";
+  }
+
+  if (score >= 70) {
+    return "Strong match";
+  }
+
+  if (score >= 60) {
+    return "Moderate match";
+  }
+
+  if (score >= 50) {
+    return "Loose match";
+  }
+
+  return "Distant match";
+}
+
+function formatSimilarityMetric(metric) {
+  const labels = {
+    shotsPer90: "Shots / 90",
+    keyPassesPer90: "Key passes / 90",
+    xgPer90: "xG / 90",
+    xaPer90: "xA / 90",
+    xgChainPer90: "xGChain / 90",
+    xgBuildupPer90: "xGBuildup / 90",
+  };
+
+  return labels[metric] || metric;
+}
 
 function calculateAge(dateOfBirth) {
   if (!dateOfBirth) return null;
@@ -354,6 +414,137 @@ function getPlayingStyle(player, ratings) {
   };
 }
 
+
+function buildSystemFit(player, ratings) {
+  const group = getPositionGroup(player.position);
+
+  const weightedScore = (weights) => {
+    let total = 0;
+    let totalWeight = 0;
+
+    Object.entries(weights).forEach(([metric, weight]) => {
+      total += safeNumber(ratings[metric]) * weight;
+      totalWeight += weight;
+    });
+
+    return clamp(total / Math.max(totalWeight, 1));
+  };
+
+  let systems;
+
+  if (group === "goalkeeper") {
+    systems = [
+      {
+        name: "Possession build-up",
+        score: weightedScore({ passing: 1.5, efficiency: 1.0, availability: 0.7 }),
+        reason: "Rewards distribution, efficiency and reliable involvement in structured build-up.",
+      },
+      {
+        name: "Balanced structure",
+        score: weightedScore({ overall: 1.2, availability: 1.0, discipline: 0.7 }),
+        reason: "Values a stable all-round profile without overcommitting to one phase of play.",
+      },
+      {
+        name: "Defensive security",
+        score: weightedScore({ availability: 1.2, discipline: 1.0, overall: 1.0 }),
+        reason: "Prioritises reliability and protecting the defensive structure.",
+      },
+    ];
+  } else if (group === "defender") {
+    systems = [
+      {
+        name: "Possession / build-up",
+        score: weightedScore({ passing: 1.5, creativity: 0.8, efficiency: 1.0, overall: 0.7 }),
+        reason: "Rewards ball progression, passing involvement and efficient possession play.",
+      },
+      {
+        name: "Progressive attacking",
+        score: weightedScore({ passing: 1.1, creativity: 1.0, movement: 0.8, goalThreat: 0.5 }),
+        reason: "Favours defenders who can support progression and contribute higher up the pitch.",
+      },
+      {
+        name: "Compact structure",
+        score: weightedScore({ defensiveWork: 1.4, discipline: 1.0, availability: 0.9, overall: 0.8 }),
+        reason: "Prioritises defensive work, discipline and dependable availability.",
+      },
+      {
+        name: "High-tempo transition",
+        score: weightedScore({ movement: 1.0, efficiency: 1.0, passing: 0.9, availability: 0.7 }),
+        reason: "Rewards quick involvement, efficient actions and the ability to move play forward.",
+      },
+    ];
+  } else if (group === "midfielder") {
+    systems = [
+      {
+        name: "Possession / build-up",
+        score: weightedScore({ passing: 1.4, creativity: 1.0, efficiency: 1.0, overall: 0.7 }),
+        reason: "Rewards passing influence, progression and efficient involvement in possession.",
+      },
+      {
+        name: "Creative combinations",
+        score: weightedScore({ creativity: 1.5, passing: 1.1, movement: 0.7, efficiency: 0.6 }),
+        reason: "Favours players who create chances and connect attacking phases.",
+      },
+      {
+        name: "Vertical attacking",
+        score: weightedScore({ goalThreat: 1.2, movement: 1.0, creativity: 0.8, finishing: 0.7 }),
+        reason: "Rewards forward impact, attacking movement and direct contribution near goal.",
+      },
+      {
+        name: "Transition football",
+        score: weightedScore({ movement: 1.2, efficiency: 1.0, goalThreat: 0.8, passing: 0.7 }),
+        reason: "Values quick attacking involvement and efficient progression into dangerous areas.",
+      },
+    ];
+  } else {
+    systems = [
+      {
+        name: "Direct attacking",
+        score: weightedScore({ goalThreat: 1.4, finishing: 1.2, movement: 1.0, efficiency: 0.6 }),
+        reason: "Rewards goal threat, finishing and repeated movement into scoring positions.",
+      },
+      {
+        name: "Fluid front line",
+        score: weightedScore({ creativity: 1.1, movement: 1.1, passing: 0.8, goalThreat: 0.8 }),
+        reason: "Favours forwards who can combine, move across the line and create as well as finish.",
+      },
+      {
+        name: "Possession attack",
+        score: weightedScore({ creativity: 1.3, passing: 1.0, efficiency: 0.9, movement: 0.7 }),
+        reason: "Rewards combination play, chance creation and efficient attacking involvement.",
+      },
+      {
+        name: "Transition attack",
+        score: weightedScore({ movement: 1.3, goalThreat: 1.1, finishing: 0.9, efficiency: 0.8 }),
+        reason: "Values movement, direct goal threat and efficient attacking actions in faster phases.",
+      },
+    ];
+  }
+
+  const sorted = [...systems].sort((a, b) => b.score - a.score);
+  const best = sorted[0];
+
+  const evidence = [
+    [ratings.creativity, "Strong creative influence"],
+    [ratings.passing, "Strong passing and progression profile"],
+    [ratings.goalThreat, "High attacking threat"],
+    [ratings.finishing, "Strong finishing output"],
+    [ratings.movement, "Strong movement and involvement"],
+    [ratings.efficiency, "Efficient statistical output"],
+    [ratings.availability, "Reliable availability profile"],
+    [ratings.defensiveWork, "Useful defensive contribution"],
+  ]
+    .sort((a, b) => b[0] - a[0])
+    .slice(0, 3)
+    .map(([, label]) => label);
+
+  return {
+    systems: sorted,
+    best,
+    evidence,
+  };
+}
+
 function buildStrengths(player, ratings) {
   const strengths = [];
 
@@ -610,38 +801,145 @@ function RadarTooltip({ active, payload }) {
 export default function PlayerScoutPage() {
   const { playerId } = useParams();
 
-  const [player, setPlayer] = useState(null);
-  const [history, setHistory] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+const [player, setPlayer] = useState(null);
+const [history, setHistory] = useState(null);
+const [allPlayers, setAllPlayers] = useState([]);
+
+const [similarityData, setSimilarityData] =
+  useState(null);
+
+const [similarityLoading, setSimilarityLoading] =
+  useState(false);
+
+const [loading, setLoading] = useState(true);
+const [error, setError] = useState("");
 
   useEffect(() => {
     let isCancelled = false;
 
-    async function loadData() {
-      try {
-        setLoading(true);
-        setError("");
+async function loadData() {
+  try {
+    setLoading(true);
+    setError("");
 
-        const playerData = await getPlayer(playerId);
-        if (isCancelled) return;
+    const playerData =
+      await getPlayer(playerId);
 
-        setPlayer(playerData);
+    if (isCancelled) return;
 
-        try {
-          const historyData = await getPlayerHistory(playerId);
-          if (!isCancelled) setHistory(historyData);
-        } catch (historyError) {
-          console.error("Unable to load player history:", historyError);
-          if (!isCancelled) setHistory(null);
-        }
-      } catch (requestError) {
-        console.error("Unable to load scout report:", requestError);
-        if (!isCancelled) setError("Unable to load this player scout report.");
-      } finally {
-        if (!isCancelled) setLoading(false);
+    setPlayer(playerData);
+
+    // ---------------------------------
+    // MAIN PLAYER LIST FOR ID MAPPING
+    // ---------------------------------
+
+    try {
+      const playersData = await getPlayers({
+        limit: 1000,
+      });
+
+      if (!isCancelled) {
+        setAllPlayers(playersData.players || []);
+      }
+    } catch (playersError) {
+      console.error(
+        "Unable to load player list for comparisons:",
+        playersError,
+      );
+
+      if (!isCancelled) {
+        setAllPlayers([]);
       }
     }
+
+    // ---------------------------------
+    // PLAYER HISTORY
+    // ---------------------------------
+
+    try {
+      const historyData =
+        await getPlayerHistory(
+          playerId,
+        );
+
+      if (!isCancelled) {
+        setHistory(
+          historyData,
+        );
+      }
+    } catch (historyError) {
+      console.error(
+        "Unable to load player history:",
+        historyError,
+      );
+
+      if (!isCancelled) {
+        setHistory(null);
+      }
+    }
+
+    // ---------------------------------
+    // SIMILAR PLAYERS V2
+    // ---------------------------------
+
+    if (
+      playerData?.understatId
+    ) {
+      try {
+        setSimilarityLoading(
+          true,
+        );
+
+        const similarData =
+          await getSimilarPlayers(
+            playerData.understatId,
+          );
+
+        if (!isCancelled) {
+          setSimilarityData(
+            similarData,
+          );
+        }
+      } catch (
+        similarityError
+      ) {
+        console.error(
+          "Unable to load similar players:",
+          similarityError,
+        );
+
+        if (!isCancelled) {
+          setSimilarityData(
+            null,
+          );
+        }
+      } finally {
+        if (!isCancelled) {
+          setSimilarityLoading(
+            false,
+          );
+        }
+      }
+    } else {
+      setSimilarityData(null);
+    }
+  } catch (requestError) {
+    console.error(
+      "Unable to load scout report:",
+      requestError,
+    );
+
+    if (!isCancelled) {
+      setError(
+        "Unable to load this player scout report.",
+      );
+    }
+  } finally {
+    if (!isCancelled) {
+      setLoading(false);
+    }
+  }
+}
 
     loadData();
 
@@ -660,6 +958,13 @@ export default function PlayerScoutPage() {
     [player, ratings],
   );
 
+
+
+  const systemFit = useMemo(
+    () => (player && ratings ? buildSystemFit(player, ratings) : null),
+    [player, ratings],
+  );
+
   const strengths = useMemo(
     () => (player && ratings ? buildStrengths(player, ratings) : []),
     [player, ratings],
@@ -669,6 +974,7 @@ export default function PlayerScoutPage() {
     () => (player && ratings ? buildWeaknesses(player, ratings) : []),
     [player, ratings],
   );
+
 
   const development = useMemo(
     () =>
@@ -715,6 +1021,50 @@ const seasons = useMemo(
       return total > bestTotal ? season : best;
     });
   }, [seasons]);
+
+  function findMainPlayerId(similarPlayer) {
+  if (!similarPlayer) return null;
+
+  // First try to match using the Understat ID.
+  // This is the most reliable link between the
+  // similarity model and the main PLStats player database.
+  const understatMatch = allPlayers.find(
+    (candidate) =>
+      String(candidate.understatId) ===
+      String(similarPlayer.understatId),
+  );
+
+  if (understatMatch) {
+    return (
+      understatMatch.id ??
+      understatMatch.playerId ??
+      null
+    );
+  }
+
+  // Fallback to matching by player name.
+  const similarName = String(
+    similarPlayer.player ||
+      similarPlayer.name ||
+      "",
+  )
+    .trim()
+    .toLowerCase();
+
+  const nameMatch = allPlayers.find(
+    (candidate) =>
+      String(candidate.name || "")
+        .trim()
+        .toLowerCase() ===
+      similarName,
+  );
+
+  return (
+    nameMatch?.id ??
+    nameMatch?.playerId ??
+    null
+  );
+}
 
   if (loading) {
     return (
@@ -1034,6 +1384,90 @@ const seasons = useMemo(
         </article>
       </section>
 
+
+
+      {systemFit && (
+        <section className="panel mt-6 p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">
+                Tactical & system fit
+              </p>
+              <h2 className="mt-2 text-2xl font-black text-white">
+                Where this profile fits best
+              </h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">
+                Position-aware fit estimates built from the statistical attributes currently available in PLStats.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-accent/30 bg-accent-soft px-5 py-4 lg:min-w-[250px]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-accent">
+                Best modelled system
+              </p>
+              <p className="mt-2 text-lg font-black text-white">
+                {systemFit.best.name}
+              </p>
+              <p className="mt-1 text-sm font-bold text-accent">
+                {systemFit.best.score}/100 fit
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-7 grid gap-4 lg:grid-cols-2">
+            {systemFit.systems.map((system) => (
+              <div
+                key={system.name}
+                className="rounded-xl border border-border bg-black/10 p-5"
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <p className="font-bold text-white">{system.name}</p>
+                  <span className="text-sm font-black text-accent">
+                    {system.score}
+                  </span>
+                </div>
+
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.06]">
+                  <div
+                    className="h-full rounded-full bg-accent transition-all"
+                    style={{ width: `${system.score}%` }}
+                  />
+                </div>
+
+                <p className="mt-3 text-xs leading-5 text-muted">
+                  {system.reason}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_1.3fr]">
+            <div className="rounded-xl border border-border bg-black/10 p-5">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-muted">
+                Why the model likes the fit
+              </p>
+              <div className="mt-4 space-y-2">
+                {systemFit.evidence.map((item) => (
+                  <div key={item} className="flex items-start gap-2 text-sm text-muted-light">
+                    <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-accent" />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border bg-black/10 p-5">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-muted">
+                Model interpretation
+              </p>
+              <p className="mt-3 text-sm leading-6 text-muted-light">
+                {systemFit.best.reason} This is a statistical fit estimate rather than a claim about a club&apos;s exact tactical instructions. Detailed pressing, tracking and off-ball event data are not currently included in this model.
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="mt-6 grid gap-6 lg:grid-cols-4">
         <InfoMetric
           label="Goals per 90"
@@ -1099,6 +1533,466 @@ const seasons = useMemo(
           </div>
         </section>
       )}
+
+{/* RECRUITMENT INTELLIGENCE */}
+
+<section className="panel mt-6 p-6">
+  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <div>
+      <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">
+        Recruitment intelligence
+      </p>
+
+      <h2 className="mt-2 text-2xl font-black text-white">
+        Similar players
+      </h2>
+
+      <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">
+        Players with the closest statistical profile based on
+        position-weighted, standardised per-90 performance.
+      </p>
+    </div>
+
+    {similarityData?.model && (
+      <div className="rounded-lg border border-border bg-black/10 px-4 py-3">
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">
+          Similarity model
+        </p>
+
+        <p className="mt-1 text-sm font-bold text-white">
+          {similarityData.model}
+        </p>
+      </div>
+    )}
+  </div>
+
+  {similarityLoading ? (
+    <div className="mt-6 flex items-center justify-center gap-3 rounded-xl border border-border bg-black/10 p-8 text-sm text-muted">
+      <Loader2
+        size={18}
+        className="animate-spin text-accent"
+      />
+      Analysing player profile...
+    </div>
+  ) : similarityData?.similarPlayers?.length ? (
+    <div className="mt-6 space-y-4">
+      {similarityData.similarPlayers
+        .slice(0, 5)
+        .map((similarPlayer, index) => {
+          const similarity = Number(
+            similarPlayer.similarity || 0,
+          );
+
+          const saving = Number(
+            similarPlayer.savingVsTargetEur || 0,
+          );
+
+          const metricMatches =
+            similarPlayer.metricMatches || {};
+
+          const closestMetrics =
+            similarPlayer.explanation?.closestMetrics || [];
+
+          const biggestDifferences =
+            similarPlayer.explanation?.biggestDifferences || [];
+
+          return (
+            <article
+              key={similarPlayer.understatId}
+              className="overflow-hidden rounded-xl border border-border bg-black/10 transition hover:border-accent/30"
+            >
+              {/* MAIN PLAYER ROW */}
+
+              <div className="grid gap-5 p-5 lg:grid-cols-[minmax(220px,1.4fr)_repeat(4,minmax(110px,0.7fr))] lg:items-center">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-black/20 text-sm font-black text-white">
+                    {index + 1}
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="truncate text-base font-black text-white">
+                      {similarPlayer.player}
+                    </p>
+
+                    <p className="mt-1 truncate text-sm text-muted">
+                      {similarPlayer.team}
+                    </p>
+
+                    <p className="mt-1 text-xs text-muted">
+                      {similarPlayer.transfermarktPosition ||
+                        similarPlayer.position}
+
+                      {similarPlayer.age
+                        ? ` • ${similarPlayer.age} years`
+                        : ""}
+                    </p>
+                  </div>
+                </div>
+
+                {/* SIMILARITY */}
+
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">
+                    Profile similarity
+                  </p>
+
+                  <p className="mt-1 text-xl font-black text-accent">
+                    {similarity.toFixed(1)}%
+                  </p>
+
+                  <p className="mt-0.5 text-xs font-semibold text-muted-light">
+                    {getSimilarityStrength(similarity)}
+                  </p>
+                </div>
+
+                {/* MARKET VALUE */}
+
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">
+                    Market value
+                  </p>
+
+                  <p className="mt-1 text-lg font-black text-white">
+                    {formatMarketValue(
+                      similarPlayer.marketValueEur,
+                    )}
+                  </p>
+                </div>
+
+                {/* PLSTATS VALUE */}
+
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">
+                    PLStats value
+                  </p>
+
+                  <p className="mt-1 text-lg font-black text-white">
+                    {formatMarketValue(
+                      similarPlayer.predictedMarketValueEur,
+                    )}
+                  </p>
+                </div>
+
+                {/* SAVING */}
+
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">
+                    Saving
+                  </p>
+
+                  <p
+                    className={`mt-1 text-lg font-black ${
+                      saving > 0
+                        ? "text-emerald-400"
+                        : "text-muted-light"
+                    }`}
+                  >
+                    {saving > 0
+                      ? formatMarketValue(saving)
+                      : "—"}
+                  </p>
+                </div>
+              </div>
+
+              {/* OVERALL SIMILARITY BAR */}
+
+              <div className="px-5">
+                <div className="h-1.5 overflow-hidden rounded-full bg-black/30">
+                  <div
+                    className="h-full rounded-full bg-accent"
+                    style={{
+                      width: `${Math.min(
+                        Math.max(similarity, 0),
+                        100,
+                      )}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* EXPLAINABILITY */}
+
+              <div className="mt-5 border-t border-border p-5">
+                <div className="flex flex-col gap-1">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-accent">
+                    Why this player matches
+                  </p>
+
+                  <p className="text-xs text-muted">
+                    Individual metric similarity compared with{" "}
+                    {player?.name || "the selected player"}.
+                  </p>
+                </div>
+
+                {/* METRIC BARS */}
+
+                <div className="mt-4 grid gap-x-8 gap-y-4 md:grid-cols-2 xl:grid-cols-3">
+                  {Object.entries(metricMatches).map(
+                    ([metric, score]) => {
+                      const metricScore = Number(score || 0);
+
+                      const isClosest =
+                        closestMetrics.includes(metric);
+
+                      const isDifference =
+                        biggestDifferences.includes(metric);
+
+                      return (
+                        <div key={metric}>
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-semibold text-muted-light">
+                                {formatSimilarityMetric(metric)}
+                              </span>
+
+                              {isClosest && (
+                                <span className="rounded border border-emerald-500/20 bg-emerald-500/10 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.1em] text-emerald-400">
+                                  Close
+                                </span>
+                              )}
+
+                              {isDifference && (
+                                <span className="rounded border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.1em] text-amber-400">
+                                  Diff
+                                </span>
+                              )}
+                            </div>
+
+                            <span className="text-xs font-black text-white">
+                              {metricScore.toFixed(0)}%
+                            </span>
+                          </div>
+
+                          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/30">
+                            <div
+                              className="h-full rounded-full bg-accent"
+                              style={{
+                                width: `${Math.min(
+                                  Math.max(metricScore, 0),
+                                  100,
+                                )}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    },
+                  )}
+                </div>
+
+                {/* SUMMARY */}
+
+                {(closestMetrics.length > 0 ||
+                  biggestDifferences.length > 0) && (
+                  <div className="mt-5 grid gap-3 md:grid-cols-2">
+                    <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-400">
+                        Closest attributes
+                      </p>
+
+                      <p className="mt-2 text-sm leading-6 text-muted-light">
+                        {closestMetrics
+                          .map(formatSimilarityMetric)
+                          .join(" • ")}
+                      </p>
+                    </div>
+
+                    <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-amber-400">
+                        Biggest differences
+                      </p>
+
+                      <p className="mt-2 text-sm leading-6 text-muted-light">
+                        {biggestDifferences
+                          .map(formatSimilarityMetric)
+                          .join(" • ")}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* DIRECT COMPARISON ACTION */}
+                <div className="mt-4 flex justify-end">
+                  {findMainPlayerId(similarPlayer) ? (
+                    <Link
+                      to={`/players/compare?player=${player.id}&opponent=${findMainPlayerId(similarPlayer)}`}
+                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-accent/40 bg-accent-soft px-4 py-2 text-xs font-bold text-accent transition hover:border-accent hover:bg-accent/15"
+                    >
+                      <ArrowLeftRight size={14} />
+                      Compare with {similarPlayer.player}
+                    </Link>
+                  ) : (
+                    <span
+                      className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-border bg-black/10 px-4 py-2 text-xs font-bold text-muted"
+                      title="This similar player could not be matched to the PLStats player database."
+                    >
+                      <ArrowLeftRight size={14} />
+                      Compare unavailable
+                    </span>
+                  )}
+                </div>
+              </div>
+            </article>
+          );
+        })}
+    </div>
+  ) : (
+    <div className="mt-6 rounded-xl border border-dashed border-border p-8 text-center">
+      <UserRoundSearch
+        size={24}
+        className="mx-auto text-muted"
+      />
+
+      <p className="mt-3 text-sm text-muted">
+        Similar-player analysis is not available for this player.
+      </p>
+    </div>
+  )}
+
+  {similarityData?.methodology && (
+    <div className="mt-5 rounded-xl border border-border bg-black/10 p-4">
+      <p className="text-xs leading-5 text-muted">
+        Similarity is calculated from standardised per-90
+        performance metrics using position-specific weighting and
+        weighted Euclidean distance. Individual metric scores show
+        where statistical profiles are most alike and where they
+        differ.
+      </p>
+    </div>
+  )}
+</section>
+{/* CHEAPER RECRUITMENT ALTERNATIVES */}
+
+{similarityData?.cheaperAlternatives?.length > 0 && (
+  <section className="panel mt-6 p-6">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">
+          Transfer alternatives
+        </p>
+
+        <h2 className="mt-2 text-2xl font-black text-white">
+          Cheaper alternatives
+        </h2>
+
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">
+          Similar statistical profiles available at a lower
+          recorded market valuation.
+        </p>
+      </div>
+
+      <CircleDollarSign
+        size={24}
+        className="text-accent"
+      />
+    </div>
+
+    <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {similarityData.cheaperAlternatives
+        .slice(0, 6)
+        .map((alternative) => {
+          const saving = Number(
+            alternative.savingVsTargetEur || 0,
+          );
+
+          return (
+            <article
+              key={`alternative-${alternative.understatId}`}
+              className="rounded-xl border border-border bg-black/10 p-5 transition hover:-translate-y-0.5 hover:border-accent/40"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="font-black text-white">
+                    {alternative.player}
+                  </h3>
+
+                  <p className="mt-1 text-sm text-muted">
+                    {alternative.team}
+                  </p>
+
+                  <p className="mt-1 text-xs text-muted">
+                    {alternative.transfermarktPosition ||
+                      alternative.position}
+                    {alternative.age
+                      ? ` • ${alternative.age} years`
+                      : ""}
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-accent/30 bg-accent-soft px-3 py-2 text-center">
+                  <p className="text-lg font-black text-accent">
+  {Number(
+    alternative.similarity || 0,
+  ).toFixed(1)}
+  %
+</p>
+
+<p className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted">
+  {getSimilarityStrength(
+    alternative.similarity,
+  )}
+</p>
+                </div>
+              </div>
+
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <div className="rounded-lg border border-border bg-black/20 p-3">
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-muted">
+                    Value
+                  </p>
+
+                  <p className="mt-1 font-black text-white">
+                    {formatMarketValue(
+                      alternative.marketValueEur,
+                    )}
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-border bg-black/20 p-3">
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-muted">
+                    Saving
+                  </p>
+
+                  <p className="mt-1 font-black text-emerald-400">
+                    {formatMarketValue(saving)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <div className="h-1.5 overflow-hidden rounded-full bg-black/30">
+                  <div
+                    className="h-full rounded-full bg-accent"
+                    style={{
+                      width: `${Math.min(
+                        Math.max(
+                          Number(
+                            alternative.similarity || 0,
+                          ),
+                          0,
+                        ),
+                        100,
+                      )}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            </article>
+          );
+        })}
+    </div>
+
+    <div className="mt-5 rounded-xl border border-border bg-black/10 p-4">
+      <p className="text-xs leading-5 text-muted">
+        Similarity indicates statistical profile resemblance, not
+        guaranteed tactical suitability or transfer availability.
+        Market values and PLStats valuations should be treated as
+        analytical estimates rather than transfer fees.
+      </p>
+    </div>
+  </section>
+)}
+      
 
       <section className="mt-6 rounded-2xl border border-accent/30 bg-accent-soft p-6">
         <div className="flex items-start gap-4">
