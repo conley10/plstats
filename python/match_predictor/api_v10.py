@@ -69,22 +69,51 @@ def root():
 
 
 # ============================================================
-# TEAMS
+# CURRENT PREMIER LEAGUE TEAMS
 # ============================================================
+
+CURRENT_PREMIER_LEAGUE_TEAMS = [
+    "Arsenal",
+    "Aston Villa",
+    "Bournemouth",
+    "Brentford",
+    "Brighton",
+    "Burnley",
+    "Chelsea",
+    "Crystal Palace",
+    "Everton",
+    "Fulham",
+    "Leeds",
+    "Liverpool",
+    "Man City",
+    "Man United",
+    "Newcastle",
+    "Nott'm Forest",
+    "Sunderland",
+    "Tottenham",
+    "West Ham",
+    "Wolves",
+]
+
 
 @app.get("/api/teams")
 def get_teams():
 
-    teams = sorted(
+    available_historical_teams = (
         set(matches["home_team"])
         | set(matches["away_team"])
     )
+
+    teams = [
+        team
+        for team in CURRENT_PREMIER_LEAGUE_TEAMS
+        if team in available_historical_teams
+    ]
 
     return {
         "count": len(teams),
         "teams": teams,
     }
-
 
 # ============================================================
 # MATCH PREDICTION
@@ -96,6 +125,16 @@ def predict_match(
 ):
 
     try:
+
+        if request.home_team not in CURRENT_PREMIER_LEAGUE_TEAMS:
+            raise ValueError(
+                f"{request.home_team} is not a current Premier League team."
+            )
+
+        if request.away_team not in CURRENT_PREMIER_LEAGUE_TEAMS:
+            raise ValueError(
+                f"{request.away_team} is not a current Premier League team."
+            )
 
         # ----------------------------------------------------
         # RESOLVE TEAM NAMES

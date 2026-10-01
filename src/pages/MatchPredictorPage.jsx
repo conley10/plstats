@@ -18,6 +18,24 @@ import {
   predictMatch,
 } from "../api/matchPredictorApi";
 
+
+/*
+ * Convert internal model team names into cleaner
+ * display names for the website.
+ *
+ * IMPORTANT:
+ * The internal value remains "Nott'm Forest"
+ * because that is the name used by the model data.
+ */
+function displayTeamName(team) {
+  if (team === "Nott'm Forest") {
+    return "Nottingham Forest";
+  }
+
+  return team;
+}
+
+
 function ProbabilityBar({
   label,
   value,
@@ -50,6 +68,7 @@ function ProbabilityBar({
     </div>
   );
 }
+
 
 export default function MatchPredictorPage() {
   const [
@@ -86,6 +105,7 @@ export default function MatchPredictorPage() {
     error,
     setError,
   ] = useState("");
+
 
   useEffect(() => {
     async function loadTeams() {
@@ -128,6 +148,7 @@ export default function MatchPredictorPage() {
     loadTeams();
   }, []);
 
+
   async function handlePredict(event) {
     event.preventDefault();
 
@@ -135,6 +156,7 @@ export default function MatchPredictorPage() {
       setError(
         "Please select both teams.",
       );
+
       return;
     }
 
@@ -142,6 +164,7 @@ export default function MatchPredictorPage() {
       setError(
         "Home and away teams must be different.",
       );
+
       return;
     }
 
@@ -172,12 +195,14 @@ export default function MatchPredictorPage() {
     }
   }
 
+
   function swapTeams() {
     setHomeTeam(awayTeam);
     setAwayTeam(homeTeam);
     setPrediction(null);
     setError("");
   }
+
 
   return (
     <main className="page-container">
@@ -205,6 +230,7 @@ export default function MatchPredictorPage() {
         </p>
       </section>
 
+
       <section className="panel p-6 md:p-8">
         <div className="mb-6 flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-accent-soft text-accent">
@@ -221,6 +247,7 @@ export default function MatchPredictorPage() {
             </p>
           </div>
         </div>
+
 
         {loadingTeams ? (
           <div className="flex items-center gap-3 py-8 text-muted">
@@ -251,6 +278,7 @@ export default function MatchPredictorPage() {
                     setHomeTeam(
                       event.target.value,
                     );
+
                     setPrediction(null);
                   }}
                   className="w-full rounded-lg border border-border bg-base px-4 py-3 text-white outline-none transition focus:border-accent"
@@ -261,12 +289,13 @@ export default function MatchPredictorPage() {
                         key={team}
                         value={team}
                       >
-                        {team}
+                        {displayTeamName(team)}
                       </option>
                     ),
                   )}
                 </select>
               </div>
+
 
               <button
                 type="button"
@@ -275,6 +304,7 @@ export default function MatchPredictorPage() {
               >
                 Swap
               </button>
+
 
               <div>
                 <label
@@ -291,6 +321,7 @@ export default function MatchPredictorPage() {
                     setAwayTeam(
                       event.target.value,
                     );
+
                     setPrediction(null);
                   }}
                   className="w-full rounded-lg border border-border bg-base px-4 py-3 text-white outline-none transition focus:border-accent"
@@ -301,7 +332,7 @@ export default function MatchPredictorPage() {
                         key={team}
                         value={team}
                       >
-                        {team}
+                        {displayTeamName(team)}
                       </option>
                     ),
                   )}
@@ -309,11 +340,13 @@ export default function MatchPredictorPage() {
               </div>
             </div>
 
+
             {error && (
               <div className="mt-5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
                 {error}
               </div>
             )}
+
 
             <button
               type="submit"
@@ -348,6 +381,7 @@ export default function MatchPredictorPage() {
         )}
       </section>
 
+
       {prediction && (
         <section className="mt-8 space-y-6">
           <div className="panel overflow-hidden">
@@ -359,9 +393,9 @@ export default function MatchPredictorPage() {
               <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
                 <div>
                   <p className="text-lg font-bold text-white md:text-2xl">
-                    {
-                      prediction.home_team
-                    }
+                    {displayTeamName(
+                      prediction.home_team,
+                    )}
                   </p>
 
                   <p className="mt-1 text-sm text-muted">
@@ -369,15 +403,17 @@ export default function MatchPredictorPage() {
                   </p>
                 </div>
 
+
                 <div className="rounded-lg border border-border bg-base px-4 py-2 text-sm font-bold text-muted">
                   VS
                 </div>
 
+
                 <div>
                   <p className="text-lg font-bold text-white md:text-2xl">
-                    {
-                      prediction.away_team
-                    }
+                    {displayTeamName(
+                      prediction.away_team,
+                    )}
                   </p>
 
                   <p className="mt-1 text-sm text-muted">
@@ -386,6 +422,7 @@ export default function MatchPredictorPage() {
                 </div>
               </div>
             </div>
+
 
             <div className="p-6 text-center md:p-8">
               <div className="mb-3 flex justify-center">
@@ -396,16 +433,23 @@ export default function MatchPredictorPage() {
               </div>
 
               <p className="text-sm font-semibold uppercase tracking-wider text-muted">
-                Predicted Result
+                Most Likely Outcome
               </p>
 
               <h2 className="mt-2 text-3xl font-extrabold text-white">
-                {
-                  prediction.prediction_label
-                }
+                {prediction.prediction === "H"
+                  ? `${displayTeamName(
+                      prediction.home_team,
+                    )} WIN`
+                  : prediction.prediction === "A"
+                    ? `${displayTeamName(
+                        prediction.away_team,
+                      )} WIN`
+                    : "DRAW"}
               </h2>
             </div>
           </div>
+
 
           <div className="grid gap-6 lg:grid-cols-2">
             <div className="panel p-6">
@@ -416,15 +460,16 @@ export default function MatchPredictorPage() {
                 />
 
                 <h2 className="text-lg font-bold text-white">
-                  Win Probabilities
+                  Result Probabilities
                 </h2>
               </div>
 
+
               <div className="space-y-6">
                 <ProbabilityBar
-                  label={
-                    prediction.home_team
-                  }
+                  label={displayTeamName(
+                    prediction.home_team,
+                  )}
                   value={
                     prediction
                       .probability_percent
@@ -442,9 +487,9 @@ export default function MatchPredictorPage() {
                 />
 
                 <ProbabilityBar
-                  label={
-                    prediction.away_team
-                  }
+                  label={displayTeamName(
+                    prediction.away_team,
+                  )}
                   value={
                     prediction
                       .probability_percent
@@ -453,6 +498,7 @@ export default function MatchPredictorPage() {
                 />
               </div>
             </div>
+
 
             <div className="panel p-6">
               <div className="mb-6 flex items-center gap-3">
@@ -466,12 +512,13 @@ export default function MatchPredictorPage() {
                 </h2>
               </div>
 
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="rounded-xl border border-border bg-base p-5 text-center">
                   <p className="text-sm text-muted">
-                    {
-                      prediction.home_team
-                    }
+                    {displayTeamName(
+                      prediction.home_team,
+                    )}
                   </p>
 
                   <p className="mt-2 text-4xl font-extrabold text-white">
@@ -487,11 +534,12 @@ export default function MatchPredictorPage() {
                   </p>
                 </div>
 
+
                 <div className="rounded-xl border border-border bg-base p-5 text-center">
                   <p className="text-sm text-muted">
-                    {
-                      prediction.away_team
-                    }
+                    {displayTeamName(
+                      prediction.away_team,
+                    )}
                   </p>
 
                   <p className="mt-2 text-4xl font-extrabold text-white">
@@ -510,23 +558,24 @@ export default function MatchPredictorPage() {
             </div>
           </div>
 
+
           <div className="grid gap-6 md:grid-cols-2">
             <div className="panel p-6">
-              <div className="flex items-center gap-3">
+              <div className="flex items-start gap-3">
                 <Shield
                   size={20}
-                  className="text-accent"
+                  className="mt-1 shrink-0 text-accent"
                 />
 
                 <div>
                   <p className="text-sm text-muted">
-                    Most Likely Score
+                    Most Likely Individual Scoreline
                   </p>
 
                   <p className="mt-1 text-3xl font-extrabold text-white">
-                    {
-                      prediction.home_team
-                    }{" "}
+                    {displayTeamName(
+                      prediction.home_team,
+                    )}{" "}
                     {
                       prediction
                         .most_likely_score
@@ -538,13 +587,23 @@ export default function MatchPredictorPage() {
                         .most_likely_score
                         .away
                     }{" "}
-                    {
-                      prediction.away_team
-                    }
+                    {displayTeamName(
+                      prediction.away_team,
+                    )}
+                  </p>
+
+                  <p className="mt-3 max-w-lg text-xs leading-relaxed text-muted">
+                    This is the single most
+                    probable exact scoreline.
+                    It may differ from the most
+                    likely overall outcome because
+                    each outcome includes multiple
+                    possible scorelines.
                   </p>
                 </div>
               </div>
             </div>
+
 
             <div className="panel p-6">
               <p className="text-sm text-muted">
@@ -572,6 +631,7 @@ export default function MatchPredictorPage() {
               </p>
             </div>
           </div>
+
 
           <p className="text-center text-xs text-muted">
             Predictions are statistical
