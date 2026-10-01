@@ -40,6 +40,11 @@ const navigation = [
     path: "/fixtures",
   },
 
+  {
+  label: "Predictor",
+  path: "/match-predictor",
+},
+
 {
   label: "Table",
   path: "/table",

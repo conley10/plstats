@@ -47,6 +47,8 @@ import TransferValuePage from "./pages/TransferValuePage";
 
 import MarketOpportunitiesPage from "./pages/MarketOpportunitiesPage";
 
+import MatchPredictorPage from "./pages/MatchPredictorPage";
+
 function PlaceholderPage({
   title,
 }) {
@@ -132,6 +134,11 @@ function App() {
           path="/fixtures"
           element={<FixturesPage />}
         />
+
+        <Route
+  path="/match-predictor"
+  element={<MatchPredictorPage />}
+/>
 
         <Route
           path="/fixtures/:fixtureId"
