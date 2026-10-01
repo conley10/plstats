@@ -2,7 +2,7 @@ import axios from "axios";
 
 const MATCH_PREDICTOR_API_URL =
   import.meta.env.VITE_MATCH_PREDICTOR_API_URL ||
-  "http://127.0.0.1:8000";
+  "https://plstats-match-predictor.onrender.com";
 
 const matchPredictorClient = axios.create({
   baseURL: MATCH_PREDICTOR_API_URL,
